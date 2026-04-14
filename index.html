@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="사회초년생을 위한 자산 관리 및 안전한 집 구하기 통합 코칭 앱 MVP">
+    <title>청년 재무·주거 통합 코칭 앱</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 구글맵 API (사용자가 제공한 구글 API 키 적용) -->
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places"></script>
+</head>
+
+<body>
+    <div id="app-container">
+
+        <!-- 1. 로그인 화면 -->
+        <section id="login-screen" class="screen active">
+            <div class="login-content">
+                <div class="logo-area">
+                    <div class="icon-bg pulse-animation">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <h1>청년지갑</h1>
+                    <p class="subtitle">나만의 든든한 AI 코치</p>
+                </div>
+
+                <div class="coach-bubble">
+                    <p>"안녕하세요! 🎉<br>안전한 자취방 구하기부터 똑똑한 자산관리까지,<br>제가 확실하게 코칭해 드릴게요!"</p>
+                </div>
+
+                <div class="login-form">
+                    <input type="text" id="username-input" placeholder="이름(UID)을 입력해주세요" autocomplete="off">
+                    <button id="login-btn" class="btn-primary">시작하기</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 메인 앱 컨테이너 (로그인 후 보임) -->
+        <main id="main-app" class="screen hidden">
+            <!-- 공통 헤더 -->
+            <header class="app-header">
+                <div class="user-greeting">
+                    <h2><span id="user-name-display">사용자</span>님, 반가워요! 👋</h2>
+                    <p>오늘도 힘차게 목표를 향해 가볼까요?</p>
+                </div>
+                <div class="header-actions" style="display: flex; align-items: center;">
+                    <i class="fa-solid fa-camera" title="짠테크 챌린지" onclick="switchTab('challenge')"
+                        style="color: var(--secondary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; background: #fffbeb;"></i>
+                    <i class="fa-solid fa-arrow-right-from-bracket" id="logout-btn" title="로그아웃"
+                        style="color: var(--danger); margin-left: 0.5rem; padding: 0.5rem; cursor: pointer;"></i>
+                </div>
+            </header>
+
+            <!-- 컨텐츠 영역 -->
+            <div id="content-area">
+
+                <!-- 2. 메인 대시보드 -->
+                <section id="dashboard-tab" class="tab-content active">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="tier-badge"><i class="fa-solid fa-medal"></i> <span id="user-tier">씨앗 등급
+                                    (Lv.1)</span></div>
+                        </div>
+                        <div class="point-area">
+                            <span class="point-label">보유 드림 포인트 (Dream Point)</span>
+                            <div class="point-value">
+                                <i class="fa-solid fa-p"></i> <span id="user-points">0</span> P
+                            </div>
+                        </div>
+                        <div class="progress-container">
+                            <div id="point-progress-bar" class="progress-bar" style="width: 0%"></div>
+                        </div>
+                        <p id="point-progress-text" class="progress-text">다음 새싹 등급까지 1000P 남았어요!</p>
+                    </div>
+
+                    <div class="menu-grid">
+                        <div class="menu-card" onclick="switchTab('map')">
+                            <div class="mc-icon" style="background: #e0f2fe; color: #0284c7;"><i
+                                    class="fa-solid fa-map-location-dot"></i></div>
+                            <h3>주변 매물 찾기</h3>
+                            <p>내 주변의 안전한 집 확인하기</p>
+                        </div>
+                        <div class="menu-card" onclick="switchTab('translator')">
+                            <div class="mc-icon" style="background: #fdf2f8; color: #db2777;"><i
+                                    class="fa-solid fa-file-signature"></i></div>
+                            <h3>등기부 안심 번역</h3>
+                            <p>어려운 용어, 쉽게 풀이해드려요!</p>
+                        </div>
+                        <div class="menu-card" onclick="switchTab('benefits')">
+                            <div class="mc-icon" style="background: #ecfdf5; color: #059669;"><i
+                                    class="fa-solid fa-gift"></i></div>
+                            <h3>자금관리 혜택</h3>
+                            <p>내 자산 지키고 불리는 비법</p>
+                        </div>
+                        <div class="menu-card" onclick="switchTab('news')">
+                            <div class="mc-icon" style="background: #f3e8ff; color: #9333ea;"><i
+                                    class="fa-solid fa-newspaper"></i></div>
+                            <h3>청년 주거 정책</h3>
+                            <p>나에게 딱 맞는 혜택 찾기</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 지도 및 주변 매물 탭 -->
+                <section id="map-tab" class="tab-content hidden">
+                    <div class="section-title">
+                        <h2>📍 주변 안심 매물 찾기</h2>
+                        <p>내 위치를 기반으로 주변 공인중개사와 매물을 확인할 수 있어요.</p>
+                    </div>
+
+                    <div class="map-controls">
+                        <button class="active" id="btn-my-location"><i class="fa-solid fa-location-crosshairs"></i> 내 위치
+                            주변</button>
+                        <button id="btn-youth-house"><i class="fa-solid fa-building"></i> 청년 주택 정보 (준비중)</button>
+                    </div>
+
+                    <div id="map-container">
+                        <!-- 실제 지도가 나타날 영역 -->
+                        <div id="map" style="width:100%; height:100%; display: none;"></div>
+                        <!-- API 키가 없거나 로딩 전일 때 보일 목업 영역 -->
+                        <div id="map-placeholder">
+                            <i class="fa-solid fa-map-location-dot pulse-animation"></i>
+                            <p>구글맵 연결 중이거나 키 권한 이슈가 있습니다...</p>
+                            <span style="font-size:0.8rem; color:#94a3b8; display:block; margin-top:10px;">(키에 Maps
+                                JavaScript/Places API 권한이 필요할 수 있습니다)</span>
+                        </div>
+                    </div>
+
+                    <div class="coach-advice" style="margin-top: 1rem;">
+                        <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁:</strong> 마음에 드는 매물을 찾으셨나요? 계약 전 꼭 '등기부 안심
+                        번역기'를 사용해 안전한지 확인해 보세요!
+                    </div>
+                </section>
+
+                <!-- 3. 등기부 안심 번역기 -->
+                <section id="translator-tab" class="tab-content hidden">
+                    <div class="section-title">
+                        <h2>🔍 등기부 안심 번역기</h2>
+                        <p>어렵고 복잡한 등기부등본, 코치 제미나이가 분석해 드릴게요.</p>
+                    </div>
+
+                    <div class="upload-box" id="upload-box">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>등기부등본 (갑구/을구) 사진을 올려주세요</p>
+                        <button class="btn-secondary">사진 업로드</button>
+                        <input type="file" id="file-upload" accept="image/*" hidden>
+                    </div>
+
+                    <div id="translator-loading" class="hidden">
+                        <div class="spinner"></div>
+                        <p>제미나이 코치가 꼼꼼하게 분석 중이에요...</p>
+                    </div>
+
+                    <div id="translator-result" class="result-card hidden">
+                        <div id="res-risk-badge" class="risk-badge safe"><i class="fa-solid fa-shield-check"></i> 분석 완료
+                            (안전)</div>
+                        <h3>제미나이 코치의 분석 리포트</h3>
+                        <div class="result-box">
+                            <h4>갑구 (소유권)</h4>
+                            <p id="res-gapgu">현재 집주인은 '김구글'님이에요. 가압류나 경매 기록 없이 깨끗합니다!</p>
+                        </div>
+                        <div class="result-box">
+                            <h4>을구 (소유권 이외)</h4>
+                            <p id="res-eulgu">은행에 빌린 돈(근저당권)이 3천만 원 있습니다. 집값 시세 대비 매우 안전한 수준이에요.</p>
+                        </div>
+                        <div id="res-advice" class="coach-advice">
+                            <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁:</strong> 계약하실 때 이 사항들을 공인중개사와 한 번 더
+                            확인하시면 완벽해요!
+                        </div>
+                        <button id="translator-restart-btn" class="btn-primary"
+                            style="margin-top: 1.5rem; width: 100%;">처음으로 돌아가기 (다시 분석)</button>
+                    </div>
+                </section>
+
+                <!-- 4. 실시간 뉴스 브리핑 -->
+                <section id="news-tab" class="tab-content hidden">
+                    <div class="section-title" style="margin-bottom: 1rem;">
+                        <h2>📰 지역별 맞춤 브리핑</h2>
+                        <p>대한민국 주요 도시별 최신 청년 주거 정책을 확인하세요.</p>
+                    </div>
+
+                    <!-- 도시 필터 (드롭다운 스크롤) -->
+                    <div class="city-dropdown-container">
+                        <select id="city-select" class="city-select" onchange="filterNews(this.value)">
+                            <option value="all">🌐 전국 전체보기</option>
+                            <option value="seoul">📍 서울특별시</option>
+                            <option value="busan">📍 부산광역시</option>
+                            <option value="incheon">📍 인천광역시</option>
+                            <option value="daegu">📍 대구광역시</option>
+                            <option value="daejeon">📍 대전광역시</option>
+                            <option value="gwangju">📍 광주광역시</option>
+                        </select>
+                    </div>
+
+                    <div class="news-feed" id="news-feed-container">
+                        <!-- JS에 의해 동적으로 뉴스 카드 생성 -->
+                    </div>
+                </section>
+
+                <!-- 5. 자금관리 혜택 -->
+                <section id="benefits-tab" class="tab-content hidden">
+                    <div class="section-title">
+                        <h2>🎁 2026년 최신 자금 혜택</h2>
+                        <p>2026년 4월 14일 기준으로 업데이트된 사회초년생 맞춤 자산 형성 혜택입니다.</p>
+                    </div>
+
+                    <div class="news-feed">
+                        <article class="news-card">
+                            <div class="news-tag highlight" style="background: #dcfce7; color: #166534;">[26.04 신설] 목돈 마련</div>
+                            <h3>2026년형 '청년도약계좌 플러스' (우대금리 확대)</h3>
+                            <p>기존 청년도약계좌에 2026년 4월부터 '기한 유연화'가 적용되었습니다. 3년만 유지해도 비과세 혜택과 정부 기여금을 온전히 받을 수 있어 중도해지율 부담이 획기적으로 줄었습니다.</p>
+                            <button class="btn-secondary"
+                                style="margin-top: 10px; width:100%; padding: 0.8rem; font-size: 0.9rem;"
+                                onclick="window.open('https://ylaccount.kinfa.or.kr/')">내역 확인 및 전환 신청하기</button>
+                        </article>
+
+                        <article class="news-card">
+                            <div class="news-tag highlight" style="background: #e0e7ff; color: #3730a3;">[26.04 개편] 금리 지원</div>
+                            <h3>중소·스타트업 취업청년 전월세 보증금 대출</h3>
+                            <p>최근 기준금리 변동을 반영해 연 1.2%의 초저금리가 적용되며, 대출 한도는 기존 1억 원에서 2026년 기준 최대 1억 5천만 원까지 대폭 상향되어 안심하고 집을 구할 수 있습니다.</p>
+                            <button class="btn-secondary"
+                                style="margin-top: 10px; width:100%; padding: 0.8rem; font-size: 0.9rem;"
+                                onclick="window.open('https://nhuf.molit.go.kr/')">대출 자격 상세보기</button>
+                        </article>
+
+                        <article class="news-card">
+                            <div class="news-tag highlight" style="background: #fee2e2; color: #991b1b;">[26.04 마감임박] 지원금</div>
+                            <h3>2026 상반기 청년 근로장려금 최대 200만 원</h3>
+                            <p>올해부터 1인 청년 단독 가구의 소득 상한선이 대폭 완화되어, 더 많은 청년들이 최대 200만 원의 장려금을 받을 수 있게 되었습니다. 4월 말까지 신청 기한을 놓치지 마세요!</p>
+                            <button class="btn-secondary"
+                                style="margin-top: 10px; width:100%; padding: 0.8rem; font-size: 0.9rem;"
+                                onclick="window.open('https://www.hometax.go.kr/')">국세청 신청 바로가기</button>
+                        </article>
+
+                        <div class="coach-advice" style="margin-top:20px;">
+                            <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁 (2026.04):</strong> 이번 달은 환급/장려금 신청이 몰려있는 시기예요! 홈택스에서 알림 설정을 해두면 깜빡할 일이 없습니다.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. 짠테크 적금 챌린지 (헤더에서 접근) -->
+                <section id="challenge-tab" class="tab-content hidden">
+                    <div class="section-title">
+                        <h2>💪 짠테크 적금 챌린지</h2>
+                        <p>오늘 아낀 커피값, 내 집 마련의 초석이 됩니다!</p>
+                    </div>
+
+                    <div class="challenge-status" id="challenge-status-btn" style="cursor: pointer;" title="스탬프 달력 보기">
+                        <div class="cs-circle">
+                            <span>Day 3</span>
+                        </div>
+                        <div class="cs-info">
+                            <h3>커피 대신 홈카페 챌린지</h3>
+                            <p>연속 3일째 달성 중! 대단해요 🔥</p>
+                        </div>
+                    </div>
+
+                    <div class="upload-box" id="challenge-upload-box">
+                        <i class="fa-solid fa-camera"></i>
+                        <p>오늘 집에서 마신 커피 사진을 올려주세요</p>
+                        <button class="btn-primary" style="margin-top:10px;">사진 찍어 인증하기</button>
+                        <input type="file" id="challenge-file-upload" accept="image/*" capture="environment" hidden>
+                    </div>
+
+                    <div id="challenge-success" class="success-card hidden">
+                        <i class="fa-solid fa-circle-check"
+                            style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;"></i>
+                        <h3>인증 성공!</h3>
+                        <p class="points-earned">+ 200 Dream Point</p>
+                        <div class="coach-congrats">
+                            "멋져요! 회원님의 끈기에 박수를 보냅니다. 오늘 하루도 파이팅이에요!"
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 하단 네비게이션 -->
+            <nav class="bottom-nav">
+                <div class="nav-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-house"></i>
+                    <span>홈</span>
+                </div>
+                <div class="nav-item" data-tab="map">
+                    <i class="fa-regular fa-map"></i>
+                    <span>지도/매물</span>
+                </div>
+                <div class="nav-item" data-tab="translator">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>안심번역</span>
+                </div>
+                <div class="nav-item" data-tab="news">
+                    <i class="fa-regular fa-newspaper"></i>
+                    <span>정책뉴스</span>
+                </div>
+                <div class="nav-item" data-tab="benefits">
+                    <i class="fa-solid fa-gift"></i>
+                    <span>자금혜택</span>
+                </div>
+            </nav>
+
+            <!-- 스탬프 달력 모달 -->
+            <div id="calendar-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📅 달성 현황 스탬프</h3>
+                        <span class="close-btn" id="calendar-close-btn">&times;</span>
+                    </div>
+                    <div class="calendar-grid">
+                        <!-- JS에서 동적 생성 -->
+                    </div>
+                    <div class="calendar-info">
+                        <p><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> 스탬프 획득: 3일 연속</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js?v=20260414"></script>
+</body>
+
+</html>
