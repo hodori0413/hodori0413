@@ -3,8 +3,15 @@ const loginScreen = document.getElementById('login-screen');
 const mainApp = document.getElementById('main-app');
 const loginBtn = document.getElementById('login-btn');
 const usernameInput = document.getElementById('username-input');
+const passwordInput = document.getElementById('password-input');
 const userNameDisplay = document.getElementById('user-name-display');
 const logoutBtn = document.getElementById('logout-btn');
+
+// Settings Elements
+const currentPasswordInput = document.getElementById('current-password');
+const newPasswordInput = document.getElementById('new-password');
+const confirmNewPasswordInput = document.getElementById('confirm-new-password');
+const changePasswordBtn = document.getElementById('change-password-btn');
 
 // Nav Items and Tabs
 const navItems = document.querySelectorAll('.nav-item');
@@ -26,9 +33,26 @@ const pointProgressBar = document.getElementById('point-progress-bar');
 const pointProgressText = document.getElementById('point-progress-text');
 
 // --- State Variables ---
+let currentUser = null;
 let totalPoints = 0;
 let progressPoints = 0;
 let currentLevel = 1;
+
+// LocalStorage DB 처리
+const USER_DB_KEY = 'youth_app_users_db';
+function loadUsersDB() {
+    return JSON.parse(localStorage.getItem(USER_DB_KEY)) || {};
+}
+function saveUserProgress() {
+    if (!currentUser) return;
+    const db = loadUsersDB();
+    if (db[currentUser]) {
+        db[currentUser].totalPoints = totalPoints;
+        db[currentUser].progressPoints = progressPoints;
+        db[currentUser].currentLevel = currentLevel;
+        localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+    }
+}
 
 function addPoints(pts) {
     totalPoints += pts;
@@ -53,6 +77,7 @@ function addPoints(pts) {
     }
 
     updateProgress();
+    saveUserProgress(); // 레벨업/포인트 적립 시 즉시 저장
 }
 
 function updateProgress() {
@@ -73,13 +98,53 @@ updateProgress();
 // --- Login Logic ---
 loginBtn.addEventListener('click', () => {
     const name = usernameInput.value.trim();
-    if (name.length === 0) {
-        alert("코칭을 시작하려면 이름을 입력해주세요!");
+    const pwd = passwordInput.value.trim();
+
+    if (name.length === 0 || pwd.length === 0) {
+        alert("아이디(UID)와 비밀번호를 모두 입력해주세요!");
         return;
     }
 
-    // Set Name
+    const db = loadUsersDB();
+
+    if (db[name]) {
+        // 기존 가입된 유저
+        if (db[name].password !== pwd) {
+            alert("비밀번호가 일치하지 않습니다.");
+            return;
+        }
+        // 데이터 불러오기
+        totalPoints = db[name].totalPoints || 0;
+        progressPoints = db[name].progressPoints || 0;
+        currentLevel = db[name].currentLevel || 1;
+        alert(`환영합니다, ${name}님! 이전 진행 상황을 불러왔습니다.`);
+    } else {
+        // 신규 유저 생성
+        if (confirm(`'${name}' 계정이 없습니다. 이 비밀번호로 새로 생성하시겠습니까?`)) {
+            db[name] = {
+                password: pwd,
+                totalPoints: 0,
+                progressPoints: 0,
+                currentLevel: 1
+            };
+            localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+            
+            totalPoints = 0;
+            progressPoints = 0;
+            currentLevel = 1;
+            alert(`계정이 성공적으로 생성되었습니다!`);
+        } else {
+            return;
+        }
+    }
+
+    currentUser = name;
+
+    // Set UI
     userNameDisplay.innerText = name;
+    userPoints.innerText = totalPoints.toLocaleString();
+    document.getElementById('user-tier').innerText = `씨앗 등급 (Lv.${currentLevel})`;
+    updateProgress();
 
     // Transition Screens
     loginScreen.classList.remove('active');
@@ -93,6 +158,11 @@ loginBtn.addEventListener('click', () => {
 
 // Optionally allow 'Enter' key to login
 usernameInput.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        passwordInput.focus();
+    }
+});
+passwordInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         loginBtn.click();
     }
@@ -120,17 +190,19 @@ function switchTab(tabId) {
         }
     });
 
-    // 3. Reset states when navigating back to tab (optional, for UX)
     if (tabId === 'translator') {
         resetTranslator();
     } else if (tabId === 'challenge') {
         resetChallenge();
-    } else if (tabId === 'map') {
+    }
+    /* [지도 기능 제거로 인한 임시 주석 처리]
+    else if (tabId === 'map') {
         // 지도가 보이게 된 직후 크기를 다시 계산하거나 초기화해야 합니다.
         setTimeout(() => {
             initMap();
         }, 100);
-    }
+    } 
+    */
 }
 
 // Add Click Events to Nav Items
@@ -198,8 +270,8 @@ fileUpload.addEventListener('change', async (e) => {
 });
 
 async function analyzeWithGemini(base64Image, mimeType) {
-    // 모델 이름을 gemini-1.5-flash 에서 gemini-1.5-flash-latest 로 변경
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+    // 안정적인 API 버전인 gemini-1.5-flash 로 사용
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     const prompt = `
 당신은 대한민국 2030 사회초년생을 돕는 친절하고 똑똑한 'AI 부동산 코치'입니다.
@@ -314,10 +386,15 @@ challengeFileUpload.addEventListener('change', (e) => {
 
 // --- Logout Logic ---
 logoutBtn.addEventListener('click', () => {
-    // 로그아웃 확인창 (선택사항이나, MVP의 직관성을 위해 바로 로그아웃 처리)
+    // 로그아웃 시 현재 상태 한 번 더 저장
+    saveUserProgress();
 
     // 입력창 초기화
     usernameInput.value = '';
+    passwordInput.value = '';
+    if(currentPasswordInput) currentPasswordInput.value = '';
+    if(newPasswordInput) newPasswordInput.value = '';
+    if(confirmNewPasswordInput) confirmNewPasswordInput.value = '';
 
     // 메인 앱 숨기기
     mainApp.classList.remove('active');
@@ -330,6 +407,7 @@ logoutBtn.addEventListener('click', () => {
         loginScreen.classList.add('active');
 
         // 상태 초기화
+        currentUser = null;
         totalPoints = 0;
         progressPoints = 0;
         currentLevel = 1;
@@ -343,6 +421,7 @@ logoutBtn.addEventListener('click', () => {
     }, 300);
 });
 
+/* [지도 기능 제거로 인한 임시 주석 처리] 시작
 // --- Map Logic ---
 let mapInitialized = false;
 let globalMap = null;
@@ -505,6 +584,7 @@ function initMap() {
         console.warn("구글 API 로드에 실패했거나 키가 유효하지 않습니다. 목업을 계속 보여줍니다.");
     }
 }
+[지도 기능 제거로 인한 임시 주석 처리] 끝 */
 
 // --- Calendar Modal Logic ---
 const challengeStatusBtn = document.getElementById('challenge-status-btn');
@@ -548,70 +628,73 @@ window.addEventListener('click', (e) => {
     }
 });
 
+// --- Settings Logic ---
+// (도움말 및 문의하기 기능은 HTML 내 인라인 onclick 알림으로 처리됨)
+
 // --- News Filter Logic ---
 const newsData = [
     {
         city: 'all_only',
-        tag: '🌐 전국 공통 / 자본관리',
+        tag: '🌐 전국 공통 / 경제동향',
         tagStyle: 'background:#fce7f3; color:#be185d;',
-        title: "누적 가입자 200만명 돌파 앞둔 청년도약계좌, 선택 이유는 바로?",
-        description: '연 9%대 적금 효과를 내세운 청년도약계좌가 누적 가입자 200만명을 돌파할 것으로 보입니다. 연 6% 금리에 비과세 혜택까지 더해진 실제 혜택 뉴스를 확인해 보세요. [42]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EB%88%84%EC%A0%81+%EA%B0%80%EC%9E%85%EC%9E%90+200%EB%A7%8C%EB%AA%85+%EB%8F%8C%ED%8C%8C+%EC%95%9E%EB%91%94+%EC%B2%AD%EB%85%84%EB%8F%84%EC%95%BD%EA%B3%84%EC%A2%8C',
-        linkText: '네이버 뉴스 바로가기'
+        title: "한국은행, 5월 기준금리 동결 전망... 고물가 장기화 여파",
+        description: '최근 소비자물가 상승세가 꺾이지 않으면서 한국은행이 이달 말 예정된 금융통화위원회에서 기준금리를 현행 수준으로 동결할 가능성이 커졌습니다. (2026년 5월 10일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%ED%95%9C%EA%B5%AD%EC%9D%80%ED%96%89+%EA%B8%B0%EC%A4%80%EA%B8%88%EB%A6%AC+%EB%8F%99%EA%B2%B0',
+        linkText: '관련 뉴스 보러가기'
     },
     {
         city: 'seoul',
-        tag: '📍 서울 / 월세·주거',
+        tag: '📍 서울 / 재무상담',
         tagStyle: 'background:#e0f2fe; color:#0284c7;',
-        title: "서울 청년 월세 지원, 신청 조건부터 지원금까지 총정리",
-        description: '서울에 거주하는 19세~39세 무주택 청년 1인 가구를 대상으로 월 최대 20만 원의 월세를 최장 12개월간 지원하는 정책에 대한 최신 보도 내용입니다. [53]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EC%84%9C%EC%9A%B8+%EC%B2%AD%EB%85%84+%EC%9B%94%EC%84%B8+%EC%A7%80%EC%9B%90,+%EC%8B%A0%EC%B2%AD+%EC%A1%B0%EA%B1%B4%EB%B6%80%ED%84%B0+%EC%A7%80%EC%9B%90%EA%B8%88%EA%B9%8C%EC%A7%80+%EC%B4%9D%EC%A0%95%EB%A6%AC',
-        linkText: '네이버 뉴스 바로가기'
+        title: "서울시 '2026 리(Re)테크' 본격 추진... 시민 재무설계 돕는다",
+        description: '서울시는 고금리 상황 속에서 시민들의 안정적인 자산관리와 은퇴 설계를 돕기 위해 무료 경제교육 및 1:1 맞춤형 재무상담 프로그램을 본격적으로 시작했습니다. (2026년 4월 8일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%84%9C%EC%9A%B8%EC%8B%9C+%EB%A6%AC%ED%85%8C%ED%81%AC+%EC%9E%AC%EB%AC%B4%EC%83%81%EB%8B%B4',
+        linkText: '관련 뉴스 보러가기'
     },
     {
         city: 'busan',
-        tag: '📍 부산 / 대출·금융',
+        tag: '📍 부산 / 지역경제',
         tagStyle: 'background:#fef08a; color:#854d0e;',
-        title: "부산 청년 전세대출 ‘머물자리론’, 선착순 폐지…신청 접수로 변경",
-        description: '부산시가 청년 임차보증금 대출 및 이자 지원사업인 머물자리론의 조기 마감 문제를 해결하기 위해 선착순을 폐지하고 상시 신청으로 개편했습니다. [86]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EB%B6%80%EC%82%B0+%EC%B2%AD%EB%85%84+%EC%A0%84%EC%84%B8%EB%8C%80%EC%B6%9C+%EB%A8%B8%EB%AC%BC%EC%9E%90%EB%A6%AC%EB%A1%A0,+%EC%84%A0%EC%B0%A9%EC%88%9C+%ED%8F%90%EC%A7%80',
-        linkText: '네이버 뉴스 바로가기'
+        title: "부산 제조업 5월 체감경기 하락... 비제조업은 관광객 유입으로 '회복세'",
+        description: '부산 지역의 제조업 체감경기(CBSI)가 원자재 가격 상승 우려로 하락한 반면, 건설 공사 및 관광객 유입의 영향으로 비제조업은 회복세를 보이고 있습니다. (2026년 4월 말 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EB%B6%80%EC%82%B0+%EC%A0%9C%EC%A1%B0%EC%97%85+%EC%B2%B4%EA%B0%90%EA%B2%BD%EA%B8%B0',
+        linkText: '관련 뉴스 보러가기'
     },
     {
         city: 'incheon',
-        tag: '📍 인천 / 자산형성',
+        tag: '📍 인천 / 금융지원',
         tagStyle: 'background:#dcfce7; color:#166534;',
-        title: "“인천 거주 청년이면 된다” 내년부터 바뀌는 드림For 청년통장",
-        description: '매월 15만 원씩 3년간 저축하면 인천시가 540만 원을 추가로 지원하는 드림For 청년통장의 직장 소재지 요건이 사라지고 소득 기준이 대폭 완화됩니다. [49]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EC%9D%B8%EC%B2%9C+%EA%B1%B0%EC%A3%BC+%EC%B2%AD%EB%85%84%EC%9D%B4%EB%A9%B4+%EB%90%9C%EB%8B%A4+%EB%82%B4%EB%85%84%EB%B6%80%ED%84%B0+%EB%B0%94%EB%80%8C%EB%8A%94+드림For+%EC%B2%AD%EB%85%84%ED%86%B5%EC%9E%A5',
-        linkText: '네이버 뉴스 바로가기'
+        title: "인천시, 소상공인 경영안정자금 100억원 추가 지원 결정",
+        description: '인천시는 지역 경제 활성화를 위해 관내 소상공인을 대상으로 한 경영안정자금 100억 원을 5월부터 추가로 융자 지원하기로 했습니다. 금리 부담을 낮추는 혜택이 포함됩니다. (2026년 5월 2일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%9D%B8%EC%B2%9C%EC%8B%9C+%EC%86%8C%EC%83%81%EA%B3%B5%EC%9D%B8+%EA%B2%BD%EC%98%81%EC%95%88%EC%A0%95%EC%9E%90%EA%B8%88',
+        linkText: '관련 뉴스 보러가기'
     },
     {
         city: 'daegu',
-        tag: '📍 대구 / 자산보호',
+        tag: '📍 대구 / 부동산금융',
         tagStyle: 'background:#ffedd5; color:#c2410c;',
-        title: "[단독] 대구 역대 최대 '전세사기' 의혹···피해 규모 200억 추산",
-        description: '대구에서 단일 사건으론 역대 최대 규모인 200억 원대 전세사기 의혹이 불거졌습니다. 피해 추정 가구가 330여 가구에 달해 청년 세입자들의 각별한 주의가 필요합니다. [66]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EA%B5%AC+%EC%97%AD%EB%8C%80+%EC%B5%9C%EB%8C%80+%EC%A0%84%EC%84%B8%EC%82%AC%EA%B8%B0+%EC%9D%98%ED%98%B9+%ED%94%BC%ED%95%B4+%EA%B7%9C%EB%AA%A8+200%EC%96%B5+%EC%B6%94%EC%82%B0',
-        linkText: '네이버 뉴스 바로가기'
+        title: "대구 수성구 아파트 매매가 바닥론 고개... 주담대 금리 변동에 촉각",
+        description: '대구 지역 아파트 매매 거래량이 소폭 반등하며 바닥론이 조심스럽게 제기되는 가운데, 시중은행의 주택담보대출 금리 변동이 향후 주요 변수가 될 전망입니다. (2026년 4월 25일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EA%B5%AC+%EC%95%84%ED%8C%8C%ED%8A%B8+%EB%A7%A4%EB%A7%A4%EA%B0%80+%EC%A3%BC%EB%8B%B4%EB%8C%80',
+        linkText: '관련 뉴스 보러가기'
     },
     {
         city: 'daejeon',
-        tag: '📍 대전 / 청년주택',
+        tag: '📍 대전 / 투자·스타트업',
         tagStyle: 'background:#fce7f3; color:#be185d;',
-        title: "'청년 근로자 주거 안정' 대전청년하우스 문 열어",
-        description: '대전 지역 청년근로자 200여명이 생활하게 될 기숙사인 대전청년하우스가 개관했습니다. 보증금 100만원, 월 27만5천원의 저렴한 비용으로 제공됩니다. [36]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EC%B2%AD%EB%85%84+%EA%B7%BC%EB%A1%9C%EC%9E%90+%EC%A3%BC%EA%B1%B0+%EC%95%88%EC%A0%95+%EB%8C%80%EC%A0%84%EC%B2%AD%EB%85%84%ED%95%98%EC%9A%B0%EC%8A%A4+%EB%AC%B8+%EC%97%B4%EC%96%B4',
-        linkText: '네이버 뉴스 바로가기'
+        title: "대전 대덕특구 벤처기업, 5월 대규모 벤처캐피탈(VC) 투자유치 릴레이",
+        description: '대전 지역의 딥테크 및 핀테크 기반 벤처기업들이 연이어 수도권 대형 벤처캐피탈로부터 수백억 원 규모의 시리즈 투자를 유치하며 자금 조달에 성공하고 있습니다. (2026년 5월 8일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EC%A0%84+%EB%8C%80%EB%8D%95%ED%8A%B9%EA%B5%AC+%EB%B2%A4%EC%B2%98%EA%B8%B0%EC%97%85+%ED%88%AC%EC%9E%90',
+        linkText: '관련 뉴스 보러가기'
     },
     {
         city: 'gwangju',
-        tag: '📍 광주 / 공공주택',
+        tag: '📍 광주 / 지역화폐',
         tagStyle: 'background:#f3e8ff; color:#7e22ce;',
-        title: "광주시, 시청 1층에 ‘전세피해지원센터’ 개소",
-        description: '광주광역시가 전세사기 피해로 주거 불안을 겪고 있는 시민들에게 법률·주거·금융 등 맞춤형 서비스를 종합적으로 제공하는 거점 기관을 개소했습니다. [83]',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EA%B4%91%EC%A3%BC%EC%8B%9C,+%EC%8B%9C%EC%B2%AD+1%EC%B8%B5%EC%97%90+%EC%A0%84%EC%84%B8%ED%94%BC%ED%95%B4%EC%A7%80%EC%9B%90%EC%84%BC%ED%84%B0+%EA%B0%9C%EC%86%8C',
-        linkText: '네이버 뉴스 바로가기'
+        title: "광주상생카드(지역화폐), 5월 가정의 달 맞아 10% 특별 할인 재개",
+        description: '광주광역시는 고물가로 인한 시민들의 재무적 부담을 덜고 골목상권 소비를 촉진하기 위해 5월 한 달간 광주상생카드 할인율을 10%로 상향 조정했습니다. (2026년 4월 29일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EA%B4%91%EC%A3%BC%EC%83%83%EC%83%9D%EC%B9%B4%EB%93%9C+10%25+%ED%95%A0%EC%9D%B8',
+        linkText: '관련 뉴스 보러가기'
     }
 ];
 
@@ -644,3 +727,70 @@ window.filterNews = function (city) {
 
 // 초기 뉴스 렌더링
 renderNews();
+
+// --- Reset Password / CAPTCHA Logic ---
+const openResetModalBtn = document.getElementById('open-reset-modal');
+const resetModal = document.getElementById('reset-modal');
+const resetCloseBtn = document.getElementById('reset-close-btn');
+const resetUidInput = document.getElementById('reset-uid');
+const captchaQuestionDiv = document.getElementById('captcha-question');
+const resetCaptchaInput = document.getElementById('reset-captcha');
+const resetNewPasswordInput = document.getElementById('reset-new-password');
+const resetBtn = document.getElementById('reset-btn');
+
+let currentCaptchaAnswer = 0;
+
+function generateCaptcha() {
+    const num1 = Math.floor(Math.random() * 9) + 1; // 1~9
+    const num2 = Math.floor(Math.random() * 9) + 1; // 1~9
+    currentCaptchaAnswer = num1 + num2;
+    captchaQuestionDiv.innerText = `${num1} + ${num2} = ?`;
+    resetCaptchaInput.value = '';
+    resetUidInput.value = '';
+    resetNewPasswordInput.value = '';
+}
+
+if (openResetModalBtn) {
+    openResetModalBtn.addEventListener('click', () => {
+        generateCaptcha();
+        resetModal.classList.remove('hidden');
+    });
+}
+
+if (resetCloseBtn) {
+    resetCloseBtn.addEventListener('click', () => {
+        resetModal.classList.add('hidden');
+    });
+}
+
+if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+        const uid = resetUidInput.value.trim();
+        const captchaAns = parseInt(resetCaptchaInput.value.trim());
+        const newPwd = resetNewPasswordInput.value.trim();
+
+        if (!uid || isNaN(captchaAns) || !newPwd) {
+            alert("모든 빈칸을 채워주세요!");
+            return;
+        }
+
+        if (captchaAns !== currentCaptchaAnswer) {
+            alert("자동가입 방지(수학 문제) 정답이 틀렸습니다. 다시 시도해주세요.");
+            generateCaptcha();
+            return;
+        }
+
+        const db = loadUsersDB();
+        if (!db[uid]) {
+            alert("해당 아이디(UID)로 가입된 계정이 없습니다.");
+            return;
+        }
+
+        // 비밀번호 업데이트
+        db[uid].password = newPwd;
+        localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+
+        alert(`'${uid}' 계정의 비밀번호가 성공적으로 초기화되었습니다! 이제 새 비밀번호로 시작하기를 눌러주세요.`);
+        resetModal.classList.add('hidden');
+    });
+}

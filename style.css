@@ -95,14 +95,17 @@ body {
 #login-screen {
   background: linear-gradient(135deg, var(--primary-bg) 0%, #ffffff 100%);
   padding: 2rem;
-  justify-content: center;
+  justify-content: flex-start;
+  overflow-y: auto;
 }
 
 .login-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
+  margin: auto 0;
+  width: 100%;
 }
 
 .logo-area {
@@ -710,6 +713,7 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   padding: 0.5rem;
+  /* 지도 기능 제외 + 설정 기능 추가로 총 5개 탭 -> 20% */
   width: 20%;
 }
 

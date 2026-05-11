@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 구글맵 API (사용자가 제공한 구글 API 키 적용) -->
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places"></script>
+    <!-- 구글맵 API (사용자가 제공한 구글 API 키 적용) [지도 기능 제거로 인한 임시 주석 처리] -->
+    <!-- <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places"></script> -->
 </head>
 
 <body>
@@ -33,11 +33,38 @@
                 </div>
 
                 <div class="login-form">
-                    <input type="text" id="username-input" placeholder="이름(UID)을 입력해주세요" autocomplete="off">
+                    <input type="text" id="username-input" placeholder="아이디(UID)를 입력해주세요" autocomplete="off">
+                    <input type="password" id="password-input" placeholder="비밀번호를 설정/입력해주세요" autocomplete="off">
                     <button id="login-btn" class="btn-primary">시작하기</button>
+                </div>
+                
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <span id="open-reset-modal" style="color: var(--text-muted); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">비밀번호를 잊으셨나요? (설정/초기화)</span>
                 </div>
             </div>
         </section>
+
+        <!-- 비밀번호 재설정 모달 (로그인 화면에서 접근) -->
+        <div id="reset-modal" class="modal hidden">
+            <div class="modal-content" style="width: 85%; max-width: 320px;">
+                <div class="modal-header">
+                    <h3 style="font-size: 1.2rem;">🔒 비밀번호 초기화</h3>
+                    <span class="close-btn" id="reset-close-btn" style="font-size: 1.5rem; cursor: pointer;">&times;</span>
+                </div>
+                <div class="login-form" style="margin-top: 0.5rem;">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.8rem; line-height: 1.4;">자동가입(봇) 방지를 위해 아래 문제의 정답을 맞춰주세요.</p>
+                    <input type="text" id="reset-uid" placeholder="가입했던 아이디(UID)" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                    
+                    <div id="captcha-question" style="background: #e0f2fe; padding: 10px; border-radius: 12px; text-align: center; font-weight: 800; font-size: 1.2rem; color: var(--primary); margin-bottom: 0.5rem; letter-spacing: 2px;">
+                        3 + 5 = ?
+                    </div>
+                    
+                    <input type="number" id="reset-captcha" placeholder="위 수학 문제의 정답" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                    <input type="password" id="reset-new-password" placeholder="새로운 비밀번호" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                    <button id="reset-btn" class="btn-primary" style="margin-top: 0.5rem; padding: 1rem;">비밀번호 변경</button>
+                </div>
+            </div>
+        </div>
 
         <!-- 메인 앱 컨테이너 (로그인 후 보임) -->
         <main id="main-app" class="screen hidden">
@@ -78,12 +105,14 @@
                     </div>
 
                     <div class="menu-grid">
+                        <!-- [지도 기능 제거로 인한 임시 주석 처리] 
                         <div class="menu-card" onclick="switchTab('map')">
                             <div class="mc-icon" style="background: #e0f2fe; color: #0284c7;"><i
                                     class="fa-solid fa-map-location-dot"></i></div>
                             <h3>주변 매물 찾기</h3>
                             <p>내 주변의 안전한 집 확인하기</p>
-                        </div>
+                        </div> 
+                        -->
                         <div class="menu-card" onclick="switchTab('translator')">
                             <div class="mc-icon" style="background: #fdf2f8; color: #db2777;"><i
                                     class="fa-solid fa-file-signature"></i></div>
@@ -99,13 +128,14 @@
                         <div class="menu-card" onclick="switchTab('news')">
                             <div class="mc-icon" style="background: #f3e8ff; color: #9333ea;"><i
                                     class="fa-solid fa-newspaper"></i></div>
-                            <h3>청년 주거 정책</h3>
-                            <p>나에게 딱 맞는 혜택 찾기</p>
+                            <h3>지역별 재무 뉴스</h3>
+                            <p>지역별 최신 경제·금융 소식</p>
                         </div>
                     </div>
                 </section>
 
-                <!-- 지도 및 주변 매물 탭 -->
+                <!-- 지도 및 주변 매물 탭 [지도 기능 제거로 인한 임시 주석 처리] -->
+                <!--
                 <section id="map-tab" class="tab-content hidden">
                     <div class="section-title">
                         <h2>📍 주변 안심 매물 찾기</h2>
@@ -119,9 +149,9 @@
                     </div>
 
                     <div id="map-container">
-                        <!-- 실제 지도가 나타날 영역 -->
+                        <!- - 실제 지도가 나타날 영역 - ->
                         <div id="map" style="width:100%; height:100%; display: none;"></div>
-                        <!-- API 키가 없거나 로딩 전일 때 보일 목업 영역 -->
+                        <!- - API 키가 없거나 로딩 전일 때 보일 목업 영역 - ->
                         <div id="map-placeholder">
                             <i class="fa-solid fa-map-location-dot pulse-animation"></i>
                             <p>구글맵 연결 중이거나 키 권한 이슈가 있습니다...</p>
@@ -135,6 +165,7 @@
                         번역기'를 사용해 안전한지 확인해 보세요!
                     </div>
                 </section>
+                -->
 
                 <!-- 3. 등기부 안심 번역기 -->
                 <section id="translator-tab" class="tab-content hidden">
@@ -180,7 +211,7 @@
                 <section id="news-tab" class="tab-content hidden">
                     <div class="section-title" style="margin-bottom: 1rem;">
                         <h2>📰 지역별 맞춤 브리핑</h2>
-                        <p>대한민국 주요 도시별 최신 청년 주거 정책을 확인하세요.</p>
+                        <p>대한민국 주요 도시별 최신 재무 및 경제 뉴스를 확인하세요.</p>
                     </div>
 
                     <!-- 도시 필터 (드롭다운 스크롤) -->
@@ -205,39 +236,39 @@
                 <section id="benefits-tab" class="tab-content hidden">
                     <div class="section-title">
                         <h2>🎁 2026년 최신 자금 혜택</h2>
-                        <p>2026년 4월 14일 기준으로 업데이트된 사회초년생 맞춤 자산 형성 혜택입니다.</p>
+                        <p>2026년 5월 11일 기준으로 업데이트된 사회초년생 맞춤 자산 형성 혜택입니다.</p>
                     </div>
 
                     <div class="news-feed">
                         <article class="news-card">
-                            <div class="news-tag highlight" style="background: #dcfce7; color: #166534;">[26.04 신설] 목돈 마련</div>
-                            <h3>2026년형 '청년도약계좌 플러스' (우대금리 확대)</h3>
-                            <p>기존 청년도약계좌에 2026년 4월부터 '기한 유연화'가 적용되었습니다. 3년만 유지해도 비과세 혜택과 정부 기여금을 온전히 받을 수 있어 중도해지율 부담이 획기적으로 줄었습니다.</p>
+                            <div class="news-tag highlight" style="background: #dcfce7; color: #166534;">[26.06 출시예정] 목돈 마련</div>
+                            <h3>만기 3년 '청년미래적금' 6월 신규 출시</h3>
+                            <p>기존 청년도약계좌와 차별화된 3년 만기 단기 적금이 6월 출시됩니다. 월 최대 50만 원 납입 시 6~12%의 정부 기여금 매칭과 이자소득 비과세 혜택이 주어집니다.</p>
                             <button class="btn-secondary"
                                 style="margin-top: 10px; width:100%; padding: 0.8rem; font-size: 0.9rem;"
-                                onclick="window.open('https://ylaccount.kinfa.or.kr/')">내역 확인 및 전환 신청하기</button>
+                                onclick="window.open('https://search.naver.com/search.naver?query=청년미래적금')">신상품 소식 확인하기</button>
                         </article>
 
                         <article class="news-card">
-                            <div class="news-tag highlight" style="background: #e0e7ff; color: #3730a3;">[26.04 개편] 금리 지원</div>
-                            <h3>중소·스타트업 취업청년 전월세 보증금 대출</h3>
-                            <p>최근 기준금리 변동을 반영해 연 1.2%의 초저금리가 적용되며, 대출 한도는 기존 1억 원에서 2026년 기준 최대 1억 5천만 원까지 대폭 상향되어 안심하고 집을 구할 수 있습니다.</p>
+                            <div class="news-tag highlight" style="background: #fee2e2; color: #991b1b;">[26.05 마감임박] 자산형성</div>
+                            <h3>청년내일저축계좌 신규 모집 (5.4 ~ 5.20)</h3>
+                            <p>일하는 저소득 청년을 대상으로 매월 10만 원 저축 시 정부가 최대 30만 원을 매칭해 주는 저축계좌 신청이 5월 20일까지 진행됩니다. 기한을 절대 놓치지 마세요!</p>
                             <button class="btn-secondary"
                                 style="margin-top: 10px; width:100%; padding: 0.8rem; font-size: 0.9rem;"
-                                onclick="window.open('https://nhuf.molit.go.kr/')">대출 자격 상세보기</button>
+                                onclick="window.open('https://www.bokjiro.go.kr/')">복지로 신청 바로가기</button>
                         </article>
 
                         <article class="news-card">
-                            <div class="news-tag highlight" style="background: #fee2e2; color: #991b1b;">[26.04 마감임박] 지원금</div>
-                            <h3>2026 상반기 청년 근로장려금 최대 200만 원</h3>
-                            <p>올해부터 1인 청년 단독 가구의 소득 상한선이 대폭 완화되어, 더 많은 청년들이 최대 200만 원의 장려금을 받을 수 있게 되었습니다. 4월 말까지 신청 기한을 놓치지 마세요!</p>
+                            <div class="news-tag highlight" style="background: #e0e7ff; color: #3730a3;">[26.05 모집중] 맞춤지원</div>
+                            <h3>서울시 중증장애청년 '이룸통장' 모집 (5.11 ~ 5.22)</h3>
+                            <p>서울시 거주 중증장애청년의 자립을 위해 월 저축액에 따라 추가 적립금을 지원하는 이룸통장 사업 참가자를 오늘(11일)부터 22일까지 한정 모집합니다.</p>
                             <button class="btn-secondary"
                                 style="margin-top: 10px; width:100%; padding: 0.8rem; font-size: 0.9rem;"
-                                onclick="window.open('https://www.hometax.go.kr/')">국세청 신청 바로가기</button>
+                                onclick="window.open('https://account.welfare.seoul.kr/')">서울시복지재단 확인하기</button>
                         </article>
 
                         <div class="coach-advice" style="margin-top:20px;">
-                            <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁 (2026.04):</strong> 이번 달은 환급/장려금 신청이 몰려있는 시기예요! 홈택스에서 알림 설정을 해두면 깜빡할 일이 없습니다.
+                            <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁 (2026.05):</strong> 6월에 출시되는 '청년미래적금'은 기존 도약계좌에서 환승이 가능할 예정입니다. 본인에게 3년과 5년 중 어떤 것이 유리할지 미리 계획을 세워두세요!
                         </div>
                     </div>
                 </section>
@@ -276,6 +307,32 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- 7. 설정 탭 -->
+                <section id="settings-tab" class="tab-content hidden">
+                    <div class="section-title">
+                        <h2>⚙️ 설정</h2>
+                        <p>앱 설정 및 고객지원을 확인할 수 있습니다.</p>
+                    </div>
+
+                    <div class="result-card" style="margin-bottom: 1rem; text-align: center;">
+                        <i class="fa-solid fa-circle-question" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                        <h3 style="margin-bottom: 0.5rem;">도움말 및 가이드</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">앱 사용이 어려우신가요? 제미나이 코치 사용법과 짠테크 인증 방법을 확인해 보세요.</p>
+                        <button class="btn-secondary" onclick="alert('도움말 페이지는 현재 준비 중입니다.')" style="width: 100%;">도움말 보기</button>
+                    </div>
+
+                    <div class="result-card" style="margin-bottom: 1rem; text-align: center;">
+                        <i class="fa-solid fa-headset" style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                        <h3 style="margin-bottom: 0.5rem;">문의하기</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">서비스 이용 중 불편한 점이나 건의사항이 있다면 언제든 문의해 주세요.</p>
+                        <button class="btn-secondary" onclick="alert('고객센터 이메일(support@youthapp.com)로 문의가 가능합니다.')" style="width: 100%;">고객센터 문의</button>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 2rem; color: #94a3b8; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px;">
+                        버전 1.08
+                    </div>
+                </section>
             </div>
 
             <!-- 하단 네비게이션 -->
@@ -284,21 +341,27 @@
                     <i class="fa-solid fa-house"></i>
                     <span>홈</span>
                 </div>
+                <!-- [지도 기능 제거로 인한 임시 주석 처리]
                 <div class="nav-item" data-tab="map">
                     <i class="fa-regular fa-map"></i>
                     <span>지도/매물</span>
                 </div>
+                -->
                 <div class="nav-item" data-tab="translator">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>안심번역</span>
                 </div>
                 <div class="nav-item" data-tab="news">
                     <i class="fa-regular fa-newspaper"></i>
-                    <span>정책뉴스</span>
+                    <span>재무뉴스</span>
                 </div>
                 <div class="nav-item" data-tab="benefits">
                     <i class="fa-solid fa-gift"></i>
                     <span>자금혜택</span>
+                </div>
+                <div class="nav-item" data-tab="settings">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>설정</span>
                 </div>
             </nav>
 
