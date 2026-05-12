@@ -17,12 +17,7 @@ const changePasswordBtn = document.getElementById('change-password-btn');
 const navItems = document.querySelectorAll('.nav-item');
 const tabContents = document.querySelectorAll('.tab-content');
 
-// Translator Elements
-const uploadBox = document.getElementById('upload-box');
-const fileUpload = document.getElementById('file-upload');
-const translatorLoading = document.getElementById('translator-loading');
-const translatorResult = document.getElementById('translator-result');
-const translatorRestartBtn = document.getElementById('translator-restart-btn');
+
 
 // Challenge Elements
 const challengeUploadBox = document.getElementById('challenge-upload-box');
@@ -95,8 +90,25 @@ function updateProgress() {
 // 초기 로드시 프로그레스 바 설정
 updateProgress();
 
+function validatePassword(pwd) {
+    const minLength = pwd.length >= 8;
+    const hasLowercase = /[a-z]/.test(pwd);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+    return minLength && hasLowercase && hasSpecial;
+}
+
 // --- Login Logic ---
+const passwordErrorDiv = document.getElementById('password-error');
+
+if (passwordInput) {
+    passwordInput.addEventListener('input', () => {
+        if (passwordErrorDiv) passwordErrorDiv.style.display = 'none';
+    });
+}
+
 loginBtn.addEventListener('click', () => {
+    if (passwordErrorDiv) passwordErrorDiv.style.display = 'none';
+    
     const name = usernameInput.value.trim();
     const pwd = passwordInput.value.trim();
 
@@ -120,6 +132,11 @@ loginBtn.addEventListener('click', () => {
         alert(`환영합니다, ${name}님! 이전 진행 상황을 불러왔습니다.`);
     } else {
         // 신규 유저 생성
+        if (!validatePassword(pwd)) {
+            if (passwordErrorDiv) passwordErrorDiv.style.display = 'block';
+            return;
+        }
+
         if (confirm(`'${name}' 계정이 없습니다. 이 비밀번호로 새로 생성하시겠습니까?`)) {
             db[name] = {
                 password: pwd,
@@ -190,19 +207,14 @@ function switchTab(tabId) {
         }
     });
 
-    if (tabId === 'translator') {
-        resetTranslator();
-    } else if (tabId === 'challenge') {
+    if (tabId === 'challenge') {
         resetChallenge();
-    }
-    /* [지도 기능 제거로 인한 임시 주석 처리]
-    else if (tabId === 'map') {
+    } else if (tabId === 'map') {
         // 지도가 보이게 된 직후 크기를 다시 계산하거나 초기화해야 합니다.
         setTimeout(() => {
             initMap();
         }, 100);
-    } 
-    */
+    }
 }
 
 // Add Click Events to Nav Items
@@ -212,151 +224,7 @@ navItems.forEach(item => {
     });
 });
 
-// --- Translator Logic ---
-const GEMINI_API_KEY = "AIzaSyCrO0CmFvMDJcEG5Gc_mM6Hp7tLtIssbCs"; 
 
-function resetTranslator() {
-    uploadBox.classList.remove('hidden');
-    translatorLoading.classList.add('hidden');
-    translatorResult.classList.add('hidden');
-}
-
-uploadBox.addEventListener('click', () => {
-    // 실제 파일 선택창 띄우기
-    fileUpload.click();
-});
-
-// 파일이 선택되면 로딩을 띄우고 분석 수행
-fileUpload.addEventListener('change', async (e) => {
-    if (e.target.files.length > 0) {
-        const file = e.target.files[0];
-
-        uploadBox.classList.add('hidden');
-        translatorLoading.classList.remove('hidden');
-
-        try {
-            // 1. 이미지를 Base64로 변환
-            const base64Data = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]); // MIME 정보 제외하고 순수 데이터만
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
-
-            // 2. API 호출 로직 분기
-            if (!GEMINI_API_KEY || GEMINI_API_KEY === "AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is") {
-                console.warn("유효한 API 키가 없습니다. 코드를 수정해 키를 넣으면 실제 분석이 가능합니다.");
-                await new Promise(r => setTimeout(r, 2000));
-                updateTranslatorUI({
-                    status: 'safe',
-                    statusText: '분석 완료 (안전 - 시뮬레이션 모드)',
-                    gapguSummary: "제미나이 코치(체험모드): 소유자는 '김구글'님으로 확인되며, 가압류나 경매 등 권리 침해 사실이 없습니다. (실제 키 입력 시 업로드한 사진의 글자를 읽어냅니다!)",
-                    eulguSummary: "제미나이 코치(체험모드): 모기지론으로 인한 근저당권 5천만 원이 잡혀있으나, 시세 대비 20% 이하로 안전합니다.",
-                    coachAdvice: "실제 분석을 테스트하시려면 app.js 파일 상단의 GEMINI_API_KEY 변수에 키를 입력해 주세요!"
-                });
-            } else {
-                // 실제 제미나이 API 전송
-                const result = await analyzeWithGemini(base64Data, file.type);
-                updateTranslatorUI(result);
-            }
-        } catch (err) {
-            alert('사진 분석 중 오류가 발생했습니다: ' + err.message);
-            resetTranslator();
-        }
-
-        // 다음 테스트를 위해 파일 input 초기화
-        fileUpload.value = '';
-    }
-});
-
-async function analyzeWithGemini(base64Image, mimeType) {
-    // 안정적인 API 버전인 gemini-1.5-flash 로 사용
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-    const prompt = `
-당신은 대한민국 2030 사회초년생을 돕는 친절하고 똑똑한 'AI 부동산 코치'입니다.
-첨부된 이미지는 부동산 '등기부등본'의 전체 또는 일부입니다. 이미지를 면밀히 읽고 다음 양식에 맞춰 JSON 형식으로만 응답해주세요.
-
-{
-    "status": "safe" 또는 "warning" 또는 "danger" 또는 "unknown",
-    "statusText": "예: 위험! 주의하세요 / 아주 깨끗한 집 / 판독 불가 등",
-    "gapguSummary": "갑구 (소유권) 데이터가 있으면 요약, 없으면 '갑구 내역을 찾을 수 없습니다(표제부 등 다른 페이지일 수 있음)'라고 출력",
-    "eulguSummary": "을구 (소유권 이외) 데이터가 있으면 요약, 없으면 '을구 내역을 찾을 수 없습니다.'라고 출력",
-    "coachAdvice": "코치의 총평. 만약 표제부만 있다면 '올려주신 사진은 건물의 성격을 나타내는 표제부입니다. 누가 집주인인지(갑구), 빚이 있는지(을구) 확인하려면 다른 페이지 사진이 필요해요!'라고 조언."
-}
-반드시 다른 말자르지 말고 중괄호 {} 로 시작하고 끝나는 순수 JSON 텍스트만 출력하세요. 마크다운 코드 블록(\`\`\`)도 포함하지 마세요.
-    `;
-
-    const requestBody = {
-        contents: [
-            {
-                parts: [
-                    { text: prompt },
-                    { inline_data: { mime_type: mimeType, data: base64Image } }
-                ]
-            }
-        ]
-    };
-
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || "API 요청에 실패했습니다.");
-    }
-
-    const data = await response.json();
-    if (!data.candidates || data.candidates.length === 0) {
-        throw new Error("AI가 응답을 생성하지 못했습니다 (안전 필터 등에 걸렸을 수 있습니다).");
-    }
-
-    let textResponse = data.candidates[0].content.parts[0].text;
-    
-    // JSON 부분만 안전하게 추출
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-        try {
-            return JSON.parse(jsonMatch[0]);
-        } catch (e) {
-            throw new Error("AI가 반환한 데이터를 처리할 수 없습니다 (JSON 파싱 에러).");
-        }
-    } else {
-        throw new Error("AI가 지정된 표 형식(JSON)으로 응답하지 않았습니다.");
-    }
-}
-
-function updateTranslatorUI(result) {
-    const riskBadge = document.getElementById('res-risk-badge');
-    const resGapgu = document.getElementById('res-gapgu');
-    const resEulgu = document.getElementById('res-eulgu');
-    const resAdvice = document.getElementById('res-advice');
-
-    resGapgu.innerText = result.gapguSummary;
-    resEulgu.innerText = result.eulguSummary;
-    resAdvice.innerHTML = `<i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁:</strong> ${result.coachAdvice}`;
-
-    riskBadge.className = 'risk-badge';
-    if (result.status === 'safe') {
-        riskBadge.classList.add('safe');
-        riskBadge.innerHTML = `<i class="fa-solid fa-shield-check"></i> ${result.statusText}`;
-        riskBadge.style.background = '#dcfce7'; riskBadge.style.color = '#166534';
-    } else if (result.status === 'warning') {
-        riskBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${result.statusText}`;
-        riskBadge.style.background = '#fef08a'; riskBadge.style.color = '#854d0e';
-    } else {
-        riskBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${result.statusText}`;
-        riskBadge.style.background = '#fee2e2'; riskBadge.style.color = '#991b1b';
-    }
-
-    document.getElementById('translator-loading').classList.add('hidden');
-    document.getElementById('translator-result').classList.remove('hidden');
-}
-
-translatorRestartBtn.addEventListener('click', resetTranslator);
 
 // --- Challenge Logic ---
 function resetChallenge() {
@@ -416,12 +284,10 @@ logoutBtn.addEventListener('click', () => {
         updateProgress();
 
         switchTab('dashboard');
-        resetTranslator();
         resetChallenge();
     }, 300);
 });
 
-/* [지도 기능 제거로 인한 임시 주석 처리] 시작
 // --- Map Logic ---
 let mapInitialized = false;
 let globalMap = null;
@@ -584,7 +450,6 @@ function initMap() {
         console.warn("구글 API 로드에 실패했거나 키가 유효하지 않습니다. 목업을 계속 보여줍니다.");
     }
 }
-[지도 기능 제거로 인한 임시 주석 처리] 끝 */
 
 // --- Calendar Modal Logic ---
 const challengeStatusBtn = document.getElementById('challenge-status-btn');
@@ -630,6 +495,31 @@ window.addEventListener('click', (e) => {
 
 // --- Settings Logic ---
 // (도움말 및 문의하기 기능은 HTML 내 인라인 onclick 알림으로 처리됨)
+const resetAccountBtn = document.getElementById('reset-account-btn');
+if (resetAccountBtn) {
+    resetAccountBtn.addEventListener('click', () => {
+        if (!currentUser) return;
+        
+        const isConfirm = confirm("⚠️ 경고! 현재 접속하신 계정의 모든 짠테크 포인트와 레벨 기록이 0으로 초기화됩니다.\n\n정말로 모든 기록을 지우시겠습니까? (이 작업은 되돌릴 수 없습니다!)");
+        
+        if (isConfirm) {
+            // DB에서 해당 UID 자체를 완전히 삭제 (비밀번호, 포인트 등 모든 기록 제거)
+            const db = loadUsersDB();
+            if (db[currentUser]) {
+                delete db[currentUser];
+                localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+            }
+
+            // 로그아웃 과정에서 다시 저장되지 않도록 현재 유저 변수 비우기
+            currentUser = null;
+            
+            alert("계정 정보(비밀번호 및 모든 진행 기록)가 영구적으로 삭제되었습니다. 시작 화면으로 돌아갑니다.");
+            
+            // 화면 전환 및 UI 초기화를 위해 로그아웃 처리
+            logoutBtn.click();
+        }
+    });
+}
 
 // --- News Filter Logic ---
 const newsData = [
@@ -736,7 +626,14 @@ const resetUidInput = document.getElementById('reset-uid');
 const captchaQuestionDiv = document.getElementById('captcha-question');
 const resetCaptchaInput = document.getElementById('reset-captcha');
 const resetNewPasswordInput = document.getElementById('reset-new-password');
+const resetPasswordErrorDiv = document.getElementById('reset-password-error');
 const resetBtn = document.getElementById('reset-btn');
+
+if (resetNewPasswordInput) {
+    resetNewPasswordInput.addEventListener('input', () => {
+        if (resetPasswordErrorDiv) resetPasswordErrorDiv.style.display = 'none';
+    });
+}
 
 let currentCaptchaAnswer = 0;
 
@@ -777,6 +674,12 @@ if (resetBtn) {
         if (captchaAns !== currentCaptchaAnswer) {
             alert("자동가입 방지(수학 문제) 정답이 틀렸습니다. 다시 시도해주세요.");
             generateCaptcha();
+            return;
+        }
+
+        if (resetPasswordErrorDiv) resetPasswordErrorDiv.style.display = 'none';
+        if (!validatePassword(newPwd)) {
+            if (resetPasswordErrorDiv) resetPasswordErrorDiv.style.display = 'block';
             return;
         }
 

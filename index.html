@@ -9,9 +9,8 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 구글맵 API (사용자가 제공한 구글 API 키 적용) [지도 기능 제거로 인한 임시 주석 처리] -->
-    <!-- <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places"></script> -->
+    <!-- 구글맵 API (사용자가 제공한 구글 API 키 적용) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places" defer></script>
 </head>
 
 <body>
@@ -35,6 +34,7 @@
                 <div class="login-form">
                     <input type="text" id="username-input" placeholder="아이디(UID)를 입력해주세요" autocomplete="off">
                     <input type="password" id="password-input" placeholder="비밀번호를 설정/입력해주세요" autocomplete="off">
+                    <div id="password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-top: -0.2rem; margin-bottom: 0.8rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
                     <button id="login-btn" class="btn-primary">시작하기</button>
                 </div>
                 
@@ -61,6 +61,7 @@
                     
                     <input type="number" id="reset-captcha" placeholder="위 수학 문제의 정답" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
                     <input type="password" id="reset-new-password" placeholder="새로운 비밀번호" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                    <div id="reset-password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-bottom: 0.8rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
                     <button id="reset-btn" class="btn-primary" style="margin-top: 0.5rem; padding: 1rem;">비밀번호 변경</button>
                 </div>
             </div>
@@ -105,20 +106,14 @@
                     </div>
 
                     <div class="menu-grid">
-                        <!-- [지도 기능 제거로 인한 임시 주석 처리] 
+                        <!-- 지도 기능 (복구됨) --> 
                         <div class="menu-card" onclick="switchTab('map')">
                             <div class="mc-icon" style="background: #e0f2fe; color: #0284c7;"><i
                                     class="fa-solid fa-map-location-dot"></i></div>
                             <h3>주변 매물 찾기</h3>
                             <p>내 주변의 안전한 집 확인하기</p>
                         </div> 
-                        -->
-                        <div class="menu-card" onclick="switchTab('translator')">
-                            <div class="mc-icon" style="background: #fdf2f8; color: #db2777;"><i
-                                    class="fa-solid fa-file-signature"></i></div>
-                            <h3>등기부 안심 번역</h3>
-                            <p>어려운 용어, 쉽게 풀이해드려요!</p>
-                        </div>
+
                         <div class="menu-card" onclick="switchTab('benefits')">
                             <div class="mc-icon" style="background: #ecfdf5; color: #059669;"><i
                                     class="fa-solid fa-gift"></i></div>
@@ -134,8 +129,7 @@
                     </div>
                 </section>
 
-                <!-- 지도 및 주변 매물 탭 [지도 기능 제거로 인한 임시 주석 처리] -->
-                <!--
+                <!-- 지도 및 주변 매물 탭 -->
                 <section id="map-tab" class="tab-content hidden">
                     <div class="section-title">
                         <h2>📍 주변 안심 매물 찾기</h2>
@@ -143,69 +137,25 @@
                     </div>
 
                     <div class="map-controls">
-                        <button class="active" id="btn-my-location"><i class="fa-solid fa-location-crosshairs"></i> 내 위치
-                            주변</button>
+                        <button class="active" id="btn-my-location"><i class="fa-solid fa-location-crosshairs"></i> 내 위치 주변</button>
                         <button id="btn-youth-house"><i class="fa-solid fa-building"></i> 청년 주택 정보 (준비중)</button>
                     </div>
 
                     <div id="map-container">
-                        <!- - 실제 지도가 나타날 영역 - ->
+                        <!-- 실제 지도가 나타날 영역 -->
                         <div id="map" style="width:100%; height:100%; display: none;"></div>
-                        <!- - API 키가 없거나 로딩 전일 때 보일 목업 영역 - ->
+                        <!-- API 키가 없거나 로딩 전일 때 보일 목업 영역 -->
                         <div id="map-placeholder">
                             <i class="fa-solid fa-map-location-dot pulse-animation"></i>
                             <p>구글맵 연결 중이거나 키 권한 이슈가 있습니다...</p>
-                            <span style="font-size:0.8rem; color:#94a3b8; display:block; margin-top:10px;">(키에 Maps
-                                JavaScript/Places API 권한이 필요할 수 있습니다)</span>
+                            <span style="font-size:0.8rem; color:#94a3b8; display:block; margin-top:10px;">(키에 Maps JavaScript/Places API 권한이 필요할 수 있습니다)</span>
                         </div>
                     </div>
 
-                    <div class="coach-advice" style="margin-top: 1rem;">
-                        <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁:</strong> 마음에 드는 매물을 찾으셨나요? 계약 전 꼭 '등기부 안심
-                        번역기'를 사용해 안전한지 확인해 보세요!
-                    </div>
+
                 </section>
-                -->
 
-                <!-- 3. 등기부 안심 번역기 -->
-                <section id="translator-tab" class="tab-content hidden">
-                    <div class="section-title">
-                        <h2>🔍 등기부 안심 번역기</h2>
-                        <p>어렵고 복잡한 등기부등본, 코치 제미나이가 분석해 드릴게요.</p>
-                    </div>
 
-                    <div class="upload-box" id="upload-box">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <p>등기부등본 (갑구/을구) 사진을 올려주세요</p>
-                        <button class="btn-secondary">사진 업로드</button>
-                        <input type="file" id="file-upload" accept="image/*" hidden>
-                    </div>
-
-                    <div id="translator-loading" class="hidden">
-                        <div class="spinner"></div>
-                        <p>제미나이 코치가 꼼꼼하게 분석 중이에요...</p>
-                    </div>
-
-                    <div id="translator-result" class="result-card hidden">
-                        <div id="res-risk-badge" class="risk-badge safe"><i class="fa-solid fa-shield-check"></i> 분석 완료
-                            (안전)</div>
-                        <h3>제미나이 코치의 분석 리포트</h3>
-                        <div class="result-box">
-                            <h4>갑구 (소유권)</h4>
-                            <p id="res-gapgu">현재 집주인은 '김구글'님이에요. 가압류나 경매 기록 없이 깨끗합니다!</p>
-                        </div>
-                        <div class="result-box">
-                            <h4>을구 (소유권 이외)</h4>
-                            <p id="res-eulgu">은행에 빌린 돈(근저당권)이 3천만 원 있습니다. 집값 시세 대비 매우 안전한 수준이에요.</p>
-                        </div>
-                        <div id="res-advice" class="coach-advice">
-                            <i class="fa-solid fa-lightbulb"></i> <strong>코치의 꿀팁:</strong> 계약하실 때 이 사항들을 공인중개사와 한 번 더
-                            확인하시면 완벽해요!
-                        </div>
-                        <button id="translator-restart-btn" class="btn-primary"
-                            style="margin-top: 1.5rem; width: 100%;">처음으로 돌아가기 (다시 분석)</button>
-                    </div>
-                </section>
 
                 <!-- 4. 실시간 뉴스 브리핑 -->
                 <section id="news-tab" class="tab-content hidden">
@@ -328,6 +278,13 @@
                         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">서비스 이용 중 불편한 점이나 건의사항이 있다면 언제든 문의해 주세요.</p>
                         <button class="btn-secondary" onclick="alert('고객센터 이메일(support@youthapp.com)로 문의가 가능합니다.')" style="width: 100%;">고객센터 문의</button>
                     </div>
+
+                    <div class="result-card" style="margin-bottom: 1rem; text-align: center; border: 1px solid #fecaca; background: #fef2f2;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; color: #ef4444; margin-bottom: 1rem;"></i>
+                        <h3 style="margin-bottom: 0.5rem; color: #b91c1c;">데이터 초기화</h3>
+                        <p style="font-size: 0.85rem; color: #991b1b; margin-bottom: 1rem; line-height: 1.4;">현재 계정의 모든 코칭 진행 기록, 포인트, 그리고 레벨을 지웁니다.</p>
+                        <button id="reset-account-btn" class="btn-secondary" style="width: 100%; background: #ef4444; color: white; border: none; font-weight: bold;">모든 기록 지우기</button>
+                    </div>
                     
                     <div style="text-align: center; margin-top: 2rem; color: #94a3b8; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px;">
                         버전 1.08
@@ -341,16 +298,11 @@
                     <i class="fa-solid fa-house"></i>
                     <span>홈</span>
                 </div>
-                <!-- [지도 기능 제거로 인한 임시 주석 처리]
                 <div class="nav-item" data-tab="map">
                     <i class="fa-regular fa-map"></i>
                     <span>지도/매물</span>
                 </div>
-                -->
-                <div class="nav-item" data-tab="translator">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <span>안심번역</span>
-                </div>
+
                 <div class="nav-item" data-tab="news">
                     <i class="fa-regular fa-newspaper"></i>
                     <span>재무뉴스</span>

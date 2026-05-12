@@ -451,25 +451,7 @@ body {
   color: var(--text-main);
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--primary-bg);
-  border-top: 4px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 2rem auto 1rem;
-}
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-#translator-loading {
-  text-align: center;
-  padding: 2rem 0;
-}
 
 .result-card {
   background: white;
@@ -479,21 +461,7 @@ body {
   border: 1px solid var(--border);
 }
 
-.risk-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-}
 
-.risk-badge.safe {
-  background: #dcfce7;
-  color: #166534;
-}
 
 .result-card h3 {
   font-size: 1.2rem;
@@ -502,24 +470,6 @@ body {
   padding-bottom: 0.5rem;
 }
 
-.result-box {
-  background: var(--bg-color);
-  padding: 1rem;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  border-left: 4px solid var(--primary);
-}
-
-.result-box h4 {
-  font-size: 1rem;
-  color: var(--primary);
-  margin-bottom: 0.5rem;
-}
-
-.result-box p {
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
 
 .coach-advice {
   background: #fffbeb;
@@ -713,8 +663,8 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   padding: 0.5rem;
-  /* 지도 기능 제외 + 설정 기능 추가로 총 5개 탭 -> 20% */
-  width: 20%;
+  /* 총 6개 탭 자동 분배 */
+  flex: 1;
 }
 
 .nav-item i {
