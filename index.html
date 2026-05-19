@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 구글맵 API (사용자가 제공한 구글 API 키 적용) -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places" defer></script>
+    <!-- Google Maps API 주석 처리 (현재 사용 안함) -->
+    <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places" defer></script> -->
 </head>
 
 <body>
@@ -76,7 +76,7 @@
                     <p>오늘도 힘차게 목표를 향해 가볼까요?</p>
                 </div>
                 <div class="header-actions" style="display: flex; align-items: center;">
-                    <i class="fa-solid fa-camera" title="짠테크 챌린지" onclick="switchTab('challenge')"
+                    <i class="fa-solid fa-wallet" title="예산 관리" onclick="switchTab('budget')"
                         style="color: var(--secondary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; background: #fffbeb;"></i>
                     <i class="fa-solid fa-arrow-right-from-bracket" id="logout-btn" title="로그아웃"
                         style="color: var(--danger); margin-left: 0.5rem; padding: 0.5rem; cursor: pointer;"></i>
@@ -105,13 +105,24 @@
                         <p id="point-progress-text" class="progress-text">다음 새싹 등급까지 1000P 남았어요!</p>
                     </div>
 
+                    <!-- 홈 대시보드 실시간 진행률 표시 -->
+                    <div class="budget-overview-card" onclick="switchTab('budget')" style="background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); border: 1px solid var(--border); cursor: pointer;">
+                        <div>
+                            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-main);">이번 달 지출 현황</h3>
+                            <p style="font-size: 0.9rem; color: var(--text-muted);">총 예산 <span id="dash-total-budget">500,000</span>원 중<br><strong style="color: var(--primary); font-size: 1.1rem;" id="dash-total-spent">0</strong>원 사용</p>
+                        </div>
+                        <div class="circular-progress" id="dash-budget-progress">
+                            <span class="progress-value" id="dash-budget-percent">0%</span>
+                        </div>
+                    </div>
+
                     <div class="menu-grid">
-                        <!-- 지도 기능 (복구됨) --> 
-                        <div class="menu-card" onclick="switchTab('map')">
+                        <!-- AI 코치 --> 
+                        <div class="menu-card" onclick="switchTab('ai-coach')">
                             <div class="mc-icon" style="background: #e0f2fe; color: #0284c7;"><i
-                                    class="fa-solid fa-map-location-dot"></i></div>
-                            <h3>주변 매물 찾기</h3>
-                            <p>내 주변의 안전한 집 확인하기</p>
+                                    class="fa-solid fa-robot"></i></div>
+                            <h3>AI 재무 코치</h3>
+                            <p>나만의 똑똑한 1:1 상담</p>
                         </div> 
 
                         <div class="menu-card" onclick="switchTab('benefits')">
@@ -129,30 +140,50 @@
                     </div>
                 </section>
 
-                <!-- 지도 및 주변 매물 탭 -->
-                <section id="map-tab" class="tab-content hidden">
-                    <div class="section-title">
-                        <h2>📍 주변 안심 매물 찾기</h2>
-                        <p>내 위치를 기반으로 주변 공인중개사와 매물을 확인할 수 있어요.</p>
-                    </div>
-
-                    <div class="map-controls">
-                        <button class="active" id="btn-my-location"><i class="fa-solid fa-location-crosshairs"></i> 내 위치 주변</button>
-                        <button id="btn-youth-house"><i class="fa-solid fa-building"></i> 청년 주택 정보 (준비중)</button>
-                    </div>
-
-                    <div id="map-container">
-                        <!-- 실제 지도가 나타날 영역 -->
-                        <div id="map" style="width:100%; height:100%; display: none;"></div>
-                        <!-- API 키가 없거나 로딩 전일 때 보일 목업 영역 -->
-                        <div id="map-placeholder">
-                            <i class="fa-solid fa-map-location-dot pulse-animation"></i>
-                            <p>구글맵 연결 중이거나 키 권한 이슈가 있습니다...</p>
-                            <span style="font-size:0.8rem; color:#94a3b8; display:block; margin-top:10px;">(키에 Maps JavaScript/Places API 권한이 필요할 수 있습니다)</span>
+                <!-- AI 코치 탭 -->
+                <section id="ai-coach-tab" class="tab-content hidden" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: #f8fafc; z-index: 10;">
+                    <style>
+                        #ai-coach-tab .chat-message { max-width: 95%; }
+                        #ai-coach-tab .chat-container { padding: 1rem; }
+                        #ai-coach-tab .chat-bubble { font-size: 1rem; }
+                        #content-area:has(#ai-coach-tab.active) { padding: 0 !important; }
+                    </style>
+                    <!-- Top Bar -->
+                    <div style="padding: 1rem; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px; z-index: 10;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #38bdf8, #0284c7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);">
+                            <i class="fa-solid fa-house-chimney-user"></i>
+                        </div>
+                        <div>
+                            <h2 style="font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0;">AI 재무 코치</h2>
+                            <p style="font-size: 0.8rem; color: #64748b; margin: 0;">내 자산과 지역에 딱 맞는 솔루션</p>
                         </div>
                     </div>
 
+                    <!-- 채팅 컨테이너 -->
+                    <div class="chat-container" id="chat-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; background: transparent; padding-bottom: 2rem;">
+                        <div class="chat-message ai">
+                            <div class="chat-bubble">
+                                반가워요! 🙌<br>대학생 여러분의 든든한 주거·자산 코치입니다.<br>현재 모은 자산과 이번 달 지출 현황을 분석하여 독립 계획을 세워드릴게요. 어떤 점이 가장 궁금하신가요?
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Input Area (Bottom) -->
+                    <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); padding: 0.8rem 1rem; display: flex; flex-direction: column; gap: 0.8rem; padding-bottom: calc(0.8rem + 70px);">
+                        <!-- 빠른 질문 추천 칩 -->
+                        <div class="suggestion-chips" id="suggestion-chips" style="display: flex; flex-wrap: nowrap; gap: 0.5rem; overflow-x: auto; margin: 0; padding-bottom: 0.2rem;">
+                            <div class="chip" onclick="fillInput('내 주거 가능 옵션 분석해줘')">🏠 주거 옵션 분석</div>
+                            <div class="chip" onclick="fillInput('월세 지원 받으면 얼마나 부담 줄까?')">💸 체감 월세 계산</div>
+                            <div class="chip" onclick="fillInput('이사 비용 시뮬레이션 해줘')">📦 초기 이사 비용</div>
+                            <div class="chip" onclick="fillInput('보증금 모으는 계획 세워줘')">💰 종잣돈 1천 플랜</div>
+                        </div>
+
+                        <!-- 채팅 입력창 -->
+                        <div class="chat-input-area" style="background: #f1f5f9; border-radius: 24px; padding: 0.4rem; border: 1px solid transparent; transition: all 0.2s;">
+                            <input type="text" id="chat-input" placeholder="질문을 입력하세요..." autocomplete="off">
+                            <button id="chat-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
                 </section>
 
 
@@ -223,40 +254,85 @@
                     </div>
                 </section>
 
-                <!-- 6. 짠테크 적금 챌린지 (헤더에서 접근) -->
-                <section id="challenge-tab" class="tab-content hidden">
-                    <div class="section-title">
-                        <h2>💪 짠테크 적금 챌린지</h2>
-                        <p>오늘 아낀 커피값, 내 집 마련의 초석이 됩니다!</p>
+                <!-- 6. 예산 관리 및 영수증 분석 탭 -->
+                <section id="budget-tab" class="tab-content hidden">
+                    <div class="section-title" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <h2>💸 똑똑한 예산 관리</h2>
+                            <p>내 지출 패턴을 한눈에 보고 영수증으로 간편하게 기록하세요.</p>
+                        </div>
+                        <button id="btn-budget-settings" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fa-solid fa-gear" style="font-size: 1.2rem;"></i></button>
                     </div>
 
-                    <div class="challenge-status" id="challenge-status-btn" style="cursor: pointer;" title="스탬프 달력 보기">
-                        <div class="cs-circle">
-                            <span>Day 3</span>
-                        </div>
-                        <div class="cs-info">
-                            <h3>커피 대신 홈카페 챌린지</h3>
-                            <p>연속 3일째 달성 중! 대단해요 🔥</p>
+                    <!-- 지난달 vs 이번달 비교 그래프 간략 표시 -->
+                    <div class="result-card" style="margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1rem; margin-bottom: 1rem; border-bottom: none;"><i class="fa-solid fa-chart-line"></i> 지출 비교</h3>
+                        <div style="display: flex; gap: 10px; align-items: flex-end; height: 60px;">
+                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px;">
+                                <div style="width: 100%; background: #e2e8f0; border-radius: 4px; height: 100%;"></div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">지난달</span>
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px;">
+                                <div id="this-month-bar" style="width: 100%; background: var(--primary); border-radius: 4px; height: 10%;"></div>
+                                <span style="font-size: 0.8rem; color: var(--primary); font-weight: bold;">이번달</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="upload-box" id="challenge-upload-box">
-                        <i class="fa-solid fa-camera"></i>
-                        <p>오늘 집에서 마신 커피 사진을 올려주세요</p>
-                        <button class="btn-primary" style="margin-top:10px;">사진 찍어 인증하기</button>
-                        <input type="file" id="challenge-file-upload" accept="image/*" capture="environment" hidden>
+                    <!-- 카테고리별 예산 현황 -->
+                    <div id="budget-categories-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                        <!-- JS로 동적 생성 -->
                     </div>
 
-                    <div id="challenge-success" class="success-card hidden">
-                        <i class="fa-solid fa-circle-check"
-                            style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;"></i>
-                        <h3>인증 성공!</h3>
-                        <p class="points-earned">+ 200 Dream Point</p>
-                        <div class="coach-congrats">
-                            "멋져요! 회원님의 끈기에 박수를 보냅니다. 오늘 하루도 파이팅이에요!"
-                        </div>
+                    <!-- AI 알림 공간 -->
+                    <div id="ai-budget-warning" class="coach-advice hidden" style="margin-bottom: 1.5rem; background: #fee2e2; border-color: #fca5a5; color: #991b1b;">
+                        <!-- AI 경고 문구 -->
+                    </div>
+
+                    <!-- 영수증 업로드 -->
+                    <div class="upload-box" id="receipt-upload-box">
+                        <i class="fa-solid fa-receipt"></i>
+                        <p>영수증 사진을 올려주시면 AI가 알아서 분류해 드려요</p>
+                        <button class="btn-primary" style="margin-top:10px;">영수증 업로드</button>
+                        <input type="file" id="receipt-file-upload" accept="image/*" capture="environment" hidden>
+                    </div>
+                    
+                    <div id="receipt-loading" class="hidden" style="text-align: center; padding: 2rem 0;">
+                        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                        <p>영수증을 분석하고 있어요...</p>
                     </div>
                 </section>
+
+                <!-- 예산 설정 모달 -->
+                <div id="budget-settings-modal" class="modal hidden">
+                    <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+                        <div class="modal-header">
+                            <h3>⚙️ 예산 설정</h3>
+                            <span class="close-btn" id="budget-settings-close-btn">&times;</span>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="font-size: 0.9rem; font-weight: bold; color: var(--text-main); display: block; margin-bottom: 0.5rem;">리셋 기준일</label>
+                            <select id="budget-reset-date" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 8px;">
+                                <option value="1">매월 1일</option>
+                                <option value="10">매월 10일 (급여일)</option>
+                                <option value="25">매월 25일 (급여일)</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <button id="btn-ai-recommend-budget" class="btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> AI 맞춤 예산 추천받기
+                            </button>
+                        </div>
+
+                        <div id="budget-inputs-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <!-- JS로 동적 생성 -->
+                        </div>
+
+                        <button id="btn-save-budget" class="btn-primary" style="margin-top: 1.5rem; width: 100%;">저장하기</button>
+                    </div>
+                </div>
 
                 <!-- 7. 설정 탭 -->
                 <section id="settings-tab" class="tab-content hidden">
@@ -298,9 +374,9 @@
                     <i class="fa-solid fa-house"></i>
                     <span>홈</span>
                 </div>
-                <div class="nav-item" data-tab="map">
-                    <i class="fa-regular fa-map"></i>
-                    <span>지도/매물</span>
+                <div class="nav-item" data-tab="ai-coach">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>AI 코치</span>
                 </div>
 
                 <div class="nav-item" data-tab="news">
@@ -317,21 +393,7 @@
                 </div>
             </nav>
 
-            <!-- 스탬프 달력 모달 -->
-            <div id="calendar-modal" class="modal hidden">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>📅 달성 현황 스탬프</h3>
-                        <span class="close-btn" id="calendar-close-btn">&times;</span>
-                    </div>
-                    <div class="calendar-grid">
-                        <!-- JS에서 동적 생성 -->
-                    </div>
-                    <div class="calendar-info">
-                        <p><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> 스탬프 획득: 3일 연속</p>
-                    </div>
-                </div>
-            </div>
+
         </main>
     </div>
 

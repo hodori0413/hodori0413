@@ -563,77 +563,77 @@ body {
 }
 
 /* ==================
-   5. CHALLENGE
+   5. BUDGET
    ================== */
-.challenge-status {
-  background: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+.budget-overview-card {
+  position: relative;
+  overflow: hidden;
 }
 
-.cs-circle {
-  width: 60px;
-  height: 60px;
-  background: var(--primary-bg);
-  border: 4px solid var(--primary);
+.circular-progress {
+  position: relative;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
+  background: conic-gradient(var(--primary) 0deg, #e2e8f0 0deg);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 8px #f8fafc;
+}
+
+.circular-progress::before {
+  content: "";
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.progress-value {
+  position: relative;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--primary);
-  font-size: 0.9rem;
 }
 
-.cs-info h3 {
-  font-size: 1.1rem;
-  margin-bottom: 0.3rem;
-}
-
-.cs-info p {
-  color: #d97706;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.success-card {
-  text-align: center;
+.budget-category-item {
   background: white;
-  padding: 2rem;
-  border-radius: 20px;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-}
-
-.success-card h3 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.points-earned {
-  font-size: 1.2rem;
-  color: var(--primary);
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  background: var(--primary-bg);
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-}
-
-.coach-congrats {
-  background: #f8fafc;
-  padding: 1rem;
   border-radius: 12px;
-  font-style: italic;
-  color: var(--text-main);
-  line-height: 1.5;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.budget-progress-bar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.budget-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.budget-progress-fill.warning {
+  background: #f59e0b;
+}
+
+.budget-progress-fill.danger {
+  background: #ef4444;
+}
+
+.budget-slider {
+  width: 100%;
+  accent-color: var(--primary);
 }
 
 /* ==================
@@ -803,48 +803,238 @@ body {
   cursor: pointer;
 }
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-bottom: 1.5rem;
+
+/* ==================
+   8. AI COACH CHAT
+   ================== */
+#ai-coach-tab {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+}
+#ai-coach-tab.hidden {
+  display: none !important;
 }
 
-.cal-day {
-  aspect-ratio: 1;
-  border-radius: 12px;
-  background: var(--bg-color);
+.chat-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.chat-message {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: 85%;
+}
+
+.chat-message.ai {
+  align-self: flex-start;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--primary);
+  border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  position: relative;
+  color: white;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
 }
 
-.cal-day.stamped {
-  background: #dcfce7;
-  border-color: var(--success);
-  color: transparent; /* hide text */
-}
-
-.cal-day.stamped::after {
-  content: '\f058'; /* FontAwesome circle-check */
-  font-family: "Font Awesome 6 Free";
-  font-weight: 900;
-  position: absolute;
-  font-size: 1.5rem;
-  color: var(--success);
-  opacity: 0.9;
-}
-
-.calendar-info p {
+.chat-bubble {
+  padding: 0.8rem 1.2rem;
   font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.chat-message.ai .chat-bubble {
+  background: white;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  color: #334155;
+  border-radius: 20px;
+  border-top-left-radius: 4px;
+}
+
+.chat-message.user .chat-bubble {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: white;
+  border-radius: 20px;
+  border-top-right-radius: 4px;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+}
+
+.suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 0.6rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
   font-weight: 600;
-  text-align: center;
-  background: var(--bg-color);
-  padding: 0.7rem;
-  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.chip:active {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: scale(0.98);
+}
+
+.suggestion-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-input-area input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.chat-input-area button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat-input-area button:active {
+  transform: scale(0.9);
+}
+
+/* AI Coach Card UI & Typing */
+.ai-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0.8rem;
+}
+
+.ai-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ai-card-big-number {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.ai-card-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+}
+
+.ai-card-row span:first-child {
+    color: var(--text-muted);
+}
+.ai-card-row span:last-child {
+    font-weight: 600;
+}
+
+.ai-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.ai-action-btn {
+    flex: 1;
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary-light);
+    padding: 0.6rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.ai-action-btn:active {
+    background: var(--primary);
+    color: white;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.typing-indicator span {
+    display: block;
+    width: 6px;
+    height: 6px;
+    background-color: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
 }

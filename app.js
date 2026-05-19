@@ -19,10 +19,36 @@ const tabContents = document.querySelectorAll('.tab-content');
 
 
 
-// Challenge Elements
-const challengeUploadBox = document.getElementById('challenge-upload-box');
-const challengeFileUpload = document.getElementById('challenge-file-upload');
-const challengeSuccess = document.getElementById('challenge-success');
+// Budget Elements
+const receiptUploadBox = document.getElementById('receipt-upload-box');
+const receiptFileUpload = document.getElementById('receipt-file-upload');
+const receiptLoading = document.getElementById('receipt-loading');
+const budgetSettingsModal = document.getElementById('budget-settings-modal');
+const btnBudgetSettings = document.getElementById('btn-budget-settings');
+const budgetSettingsCloseBtn = document.getElementById('budget-settings-close-btn');
+const btnSaveBudget = document.getElementById('btn-save-budget');
+const budgetInputsContainer = document.getElementById('budget-inputs-container');
+const budgetCategoriesContainer = document.getElementById('budget-categories-container');
+const btnAiRecommendBudget = document.getElementById('btn-ai-recommend-budget');
+const aiBudgetWarning = document.getElementById('ai-budget-warning');
+const dashTotalBudget = document.getElementById('dash-total-budget');
+const dashTotalSpent = document.getElementById('dash-total-spent');
+const dashBudgetProgress = document.getElementById('dash-budget-progress');
+const dashBudgetPercent = document.getElementById('dash-budget-percent');
+const thisMonthBar = document.getElementById('this-month-bar');
+
+let budgetData = {
+    totalBudget: 500000,
+    totalSpent: 0,
+    categories: [
+        { id: 'housing', name: '주거비', limit: 200000, spent: 0 },
+        { id: 'food', name: '식비/카페', limit: 150000, spent: 0 },
+        { id: 'transport', name: '교통비', limit: 50000, spent: 0 },
+        { id: 'shopping', name: '쇼핑', limit: 50000, spent: 0 },
+        { id: 'others', name: '기타', limit: 50000, spent: 0 }
+    ],
+    resetDate: '1'
+};
 const userPoints = document.getElementById('user-points');
 const pointProgressBar = document.getElementById('point-progress-bar');
 const pointProgressText = document.getElementById('point-progress-text');
@@ -207,13 +233,15 @@ function switchTab(tabId) {
         }
     });
 
-    if (tabId === 'challenge') {
-        resetChallenge();
-    } else if (tabId === 'map') {
-        // 지도가 보이게 된 직후 크기를 다시 계산하거나 초기화해야 합니다.
-        setTimeout(() => {
-            initMap();
-        }, 100);
+    if (tabId === 'budget') {
+        renderBudgetOverview();
+    }
+    
+    if (tabId === 'ai-coach') {
+        const chatContainer = document.getElementById('chat-container');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
 }
 
@@ -226,31 +254,159 @@ navItems.forEach(item => {
 
 
 
-// --- Challenge Logic ---
-function resetChallenge() {
-    challengeUploadBox.classList.remove('hidden');
-    challengeSuccess.classList.add('hidden');
+// --- Budget Logic ---
+function renderBudgetOverview() {
+    let totalBudget = 0;
+    let totalSpent = 0;
+    budgetData.categories.forEach(c => {
+        totalBudget += parseInt(c.limit);
+        totalSpent += parseInt(c.spent);
+    });
+    budgetData.totalBudget = totalBudget;
+    budgetData.totalSpent = totalSpent;
+
+    let percent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+    
+    // Dashboard updates
+    if (dashTotalBudget) dashTotalBudget.innerText = totalBudget.toLocaleString();
+    if (dashTotalSpent) dashTotalSpent.innerText = totalSpent.toLocaleString();
+    if (dashBudgetPercent) dashBudgetPercent.innerText = `${percent}%`;
+    if (dashBudgetProgress) {
+        dashBudgetProgress.style.background = `conic-gradient(var(--primary) ${percent * 3.6}deg, #e2e8f0 0deg)`;
+    }
+    
+    // This month graph
+    if (thisMonthBar) {
+        thisMonthBar.style.height = `${Math.min(100, Math.max(10, percent))}%`;
+        if (percent > 90) thisMonthBar.style.background = '#ef4444';
+        else if (percent > 70) thisMonthBar.style.background = '#f59e0b';
+        else thisMonthBar.style.background = 'var(--primary)';
+    }
+
+    // Render Categories
+    if (budgetCategoriesContainer) {
+        budgetCategoriesContainer.innerHTML = '';
+        budgetData.categories.forEach(c => {
+            let catPercent = c.limit > 0 ? Math.round((c.spent / c.limit) * 100) : 0;
+            let barColorClass = catPercent > 90 ? 'danger' : (catPercent > 70 ? 'warning' : '');
+            
+            budgetCategoriesContainer.innerHTML += `
+                <div class="budget-category-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold;">${c.name}</span>
+                        <span style="font-size: 0.9rem;">${c.spent.toLocaleString()} / ${c.limit.toLocaleString()}원</span>
+                    </div>
+                    <div class="budget-progress-bar">
+                        <div class="budget-progress-fill ${barColorClass}" style="width: ${Math.min(100, catPercent)}%"></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // AI Warning
+    if (aiBudgetWarning) {
+        if (percent > 90) {
+            aiBudgetWarning.classList.remove('hidden');
+            aiBudgetWarning.style.background = '#fee2e2';
+            aiBudgetWarning.style.color = '#991b1b';
+            aiBudgetWarning.style.borderColor = '#fca5a5';
+            aiBudgetWarning.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>위험!</strong> 전체 예산의 90%를 초과했어요. 이번 달은 지출을 멈추고 짠테크 모드로 전환하세요! <button class="btn-secondary" style="margin-top: 10px; width: 100%; font-size: 0.8rem; background: white; color: #991b1b; border: 1px solid #fca5a5;">긴급 지출 방어 대안 보기</button>`;
+        } else if (percent > 70) {
+            aiBudgetWarning.classList.remove('hidden');
+            aiBudgetWarning.style.background = '#fef3c7';
+            aiBudgetWarning.style.color = '#92400e';
+            aiBudgetWarning.style.borderColor = '#fcd34d';
+            aiBudgetWarning.innerHTML = `<i class="fa-solid fa-lightbulb"></i> 전체 예산의 70%가 사용됐어요. 이번 주말에는 외식 대신 집밥 어떠세요?`;
+        } else {
+            aiBudgetWarning.classList.add('hidden');
+        }
+    }
 }
 
-challengeUploadBox.addEventListener('click', () => {
-    // 실제 파일 선택(카메라) 창 띄우기
-    challengeFileUpload.click();
-});
+if (btnBudgetSettings) {
+    btnBudgetSettings.addEventListener('click', () => {
+        budgetInputsContainer.innerHTML = '';
+        budgetData.categories.forEach((c, index) => {
+            budgetInputsContainer.innerHTML += `
+                <div>
+                    <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">${c.name}</label>
+                    <input type="range" class="budget-slider" id="budget-slider-${index}" min="0" max="1000000" step="10000" value="${c.limit}" oninput="document.getElementById('budget-val-${index}').innerText = Number(this.value).toLocaleString() + '원'">
+                    <div style="text-align: right; font-weight: bold; font-size: 0.9rem; color: var(--primary);" id="budget-val-${index}">${c.limit.toLocaleString()}원</div>
+                </div>
+            `;
+        });
+        document.getElementById('budget-reset-date').value = budgetData.resetDate;
+        budgetSettingsModal.classList.remove('hidden');
+    });
+}
 
-challengeFileUpload.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        challengeUploadBox.classList.add('hidden');
+if (budgetSettingsCloseBtn) {
+    budgetSettingsCloseBtn.addEventListener('click', () => {
+        budgetSettingsModal.classList.add('hidden');
+    });
+}
 
-        // Add points and update UI
-        addPoints(200);
+if (btnSaveBudget) {
+    btnSaveBudget.addEventListener('click', () => {
+        budgetData.categories.forEach((c, index) => {
+            const slider = document.getElementById(`budget-slider-${index}`);
+            if (slider) {
+                c.limit = parseInt(slider.value);
+            }
+        });
+        budgetData.resetDate = document.getElementById('budget-reset-date').value;
+        renderBudgetOverview();
+        budgetSettingsModal.classList.add('hidden');
+        alert('예산 설정이 저장되었습니다.');
+    });
+}
 
-        // Show Success screen
-        challengeSuccess.classList.remove('hidden');
+if (btnAiRecommendBudget) {
+    btnAiRecommendBudget.addEventListener('click', () => {
+        // AI mock logic
+        budgetData.categories.forEach(c => {
+            if (c.id === 'housing') c.limit = 300000;
+            else if (c.id === 'food') c.limit = 200000;
+            else if (c.id === 'transport') c.limit = 80000;
+            else if (c.id === 'shopping') c.limit = 100000;
+            else c.limit = 50000;
+        });
+        alert('AI가 회원님의 패턴을 분석하여 최적의 예산을 제안했습니다!');
+        // Refresh sliders
+        btnBudgetSettings.click(); 
+    });
+}
 
-        // 다음 인증을 위해 파일 input 초기화
-        challengeFileUpload.value = '';
-    }
-});
+if (receiptUploadBox) {
+    receiptUploadBox.addEventListener('click', () => {
+        receiptFileUpload.click();
+    });
+}
+
+if (receiptFileUpload) {
+    receiptFileUpload.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            receiptUploadBox.classList.add('hidden');
+            receiptLoading.classList.remove('hidden');
+            
+            setTimeout(() => {
+                receiptLoading.classList.add('hidden');
+                receiptUploadBox.classList.remove('hidden');
+                
+                // Mock adding expense to food
+                budgetData.categories[1].spent += 15000; 
+                renderBudgetOverview();
+                alert('AI 영수증 분석 완료!\\n식비/카페 카테고리에 15,000원이 등록되었습니다.');
+                
+                receiptFileUpload.value = '';
+            }, 1500);
+        }
+    });
+}
+
+// 초기화 시 렌더링
+renderBudgetOverview();
 
 // --- Logout Logic ---
 logoutBtn.addEventListener('click', () => {
@@ -288,167 +444,302 @@ logoutBtn.addEventListener('click', () => {
     }, 300);
 });
 
-// --- Map Logic ---
-let mapInitialized = false;
-let globalMap = null;
-let placesService = null;
+// --- AI Coach Chat Logic ---
+const GEMINI_API_KEY = "AIzaSyDa8jEQPUbKM_vBRheCZDIWqRSuNExjZ4M"; // 사용자 제공 API 키
 
-function initMap() {
-    if (mapInitialized) {
-        if (globalMap) {
-            google.maps.event.trigger(globalMap, 'resize');
+const chatInput = document.getElementById('chat-input');
+const chatSendBtn = document.getElementById('chat-send-btn');
+const chatContainer = document.getElementById('chat-container');
+const suggestionChips = document.getElementById('suggestion-chips');
+
+let chatHistory = [];
+
+async function fetchGeminiResponse(userMessage) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const spentPercent = budgetData.totalBudget > 0 ? ((budgetData.totalSpent / budgetData.totalBudget) * 100).toFixed(1) : 0;
+    const remaining = budgetData.totalBudget - budgetData.totalSpent;
+    
+    const systemPrompt = `너는 월지킴이 AI의 청년주거 자산 코치야. 대학생들이 월세, 생활비, 자산 관리로 고민할 때 친근하게 도와주는 든든한 코치야. 말투는 딱딱하지 않고 대학생 친구처럼 친근하고 솔직하면서도 격려해주는 스타일로 해줘. 현재 사용자의 이번 달 총 예산은 ${budgetData.totalBudget.toLocaleString()}원이고, 그 중 ${spentPercent}%를 사용했어 (남은 예산: ${remaining.toLocaleString()}원). 보유 자산은 300만원으로 가정해.`;
+
+    const payload = {
+        contents: [
+            {
+                role: "user",
+                parts: [{ text: systemPrompt + "\n\n사용자 질문: " + userMessage }]
+            }
+        ],
+        generationConfig: {
+            temperature: 0.7,
+            topP: 0.95,
+            maxOutputTokens: 4096,
         }
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error("Gemini API Error:", data.error);
+            return `앗, 제가 지금 생각 정리에 문제가 생겼어요. 😢<br><span style="font-size:0.8rem; color:var(--danger);">(API 오류: ${data.error.message || '알 수 없는 오류'})</span>`;
+        }
+        
+        if (data.candidates && data.candidates[0].content) {
+            let text = data.candidates[0].content.parts[0].text;
+            // 간단한 마크다운 파싱
+            text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+        return "음, 무슨 말인지 잘 이해하지 못했어요. 다시 한번 말씀해주실래요?";
+    } catch (e) {
+        console.error("Fetch Error:", e);
+        return "앗, 통신 상태가 좋지 않아서 연결이 끊어졌어요. 나중에 다시 시도해주세요! 😭";
+    }
+}
+
+function addMessageToChat(text, sender) {
+    if (!text.trim()) return;
+    
+    // Save to history (simulation)
+    chatHistory.push({ sender, text });
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${sender}`;
+    
+    let html = '';
+    if (sender === 'ai') {
+        html = `
+            <div class="chat-bubble">${text}</div>
+        `;
+    } else {
+        html = `
+            <div class="chat-bubble">${text}</div>
+        `;
+    }
+    
+    messageDiv.innerHTML = html;
+    chatContainer.appendChild(messageDiv);
+    
+    // Auto scroll to bottom
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function handleUserMessage(msg) {
+    if (!msg.trim()) return;
+    
+    // 1. Add User Message
+    addMessageToChat(msg, 'user');
+    chatInput.value = '';
+    
+    // 2. Hide suggestions temporarily or permanently
+    if (suggestionChips) {
+        suggestionChips.style.display = 'none';
+    }
+    
+    // 3. Show AI loading (typing indicator)
+    const typingId = 'typing-' + Date.now();
+    const typingHtml = `
+        <div class="chat-bubble" style="background: transparent; border: none; box-shadow: none; padding: 0;">
+            <div class="typing-indicator">
+                코치가 분석 중입니다... <span></span><span></span><span></span>
+            </div>
+        </div>
+    `;
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message ai';
+    typingDiv.id = typingId;
+    typingDiv.innerHTML = typingHtml;
+    chatContainer.appendChild(typingDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    async function handleAsync() {
+        // Fetch real Gemini response
+        let geminiText = await fetchGeminiResponse(msg);
+        let appendedCardHtml = "";
+        
+        // Append specific UI cards based on keywords (Hybrid approach to preserve UI)
+        if (msg.includes("옵션 분석") || msg.includes("주거 가능 옵션")) {
+            appendedCardHtml = `<div class="ai-card" style="margin-top: 1rem;">
+                            <div class="ai-card-title"><i class="fa-solid fa-building"></i> 코치의 추천: 맞춤형 주거 플랜</div>
+                            <div class="ai-card-row"><span>예상 보증금</span><span>100~300만 원</span></div>
+                            <div class="ai-card-row"><span>예상 월세</span><span style="color:var(--primary);">35~45만 원</span></div>
+                            <div class="ai-card-row"><span>주거 형태</span><span>가성비 원룸 / 공유주택</span></div>
+                            <div class="ai-card-actions">
+                                <button class="ai-action-btn" onclick="showNearbyPropertiesList()" style="background: var(--primary); color: white; border: none; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">📍 내 주변 실제 매물 나열하기</button>
+                            </div>
+                         </div>`;
+        } else if (msg.includes("월세 지원") || msg.includes("부담 줄까") || msg.includes("월세 계산")) {
+            appendedCardHtml = `<div class="ai-card" style="margin-top: 1rem;">
+                            <div class="ai-card-title"><i class="fa-solid fa-calculator"></i> 청년월세지원 체감 시뮬레이션</div>
+                            <div class="ai-card-big-number" style="color:var(--danger); font-size: 1.2rem; text-decoration: line-through;">기존 450,000원</div>
+                            <div class="ai-card-big-number" style="color:var(--primary);">실부담 250,000원</div>
+                            <div class="ai-card-row"><span>매월 절약되는 금액</span><span style="color:var(--success);">+200,000원</span></div>
+                            <div class="ai-card-row"><span>연간 총 절약액</span><span style="color:var(--success);">+2,400,000원</span></div>
+                            <div class="ai-card-actions">
+                                <button class="ai-action-btn" onclick="switchTab('benefits')">신청 가이드 보기</button>
+                                <button class="ai-action-btn" onclick="switchTab('budget')">예산 다시 짜기</button>
+                            </div>
+                         </div>`;
+        } else if (msg.includes("이사 비용") || msg.includes("시뮬레이션")) {
+            appendedCardHtml = `<div class="ai-card" style="margin-top: 1rem;">
+                            <div class="ai-card-title"><i class="fa-solid fa-truck-fast"></i> 초기 이사/세팅 비용 계산기</div>
+                            <div class="ai-card-big-number">최소 약 60만 원 필요</div>
+                            <div class="ai-card-row"><span>용달 이사비</span><span>150,000원</span></div>
+                            <div class="ai-card-row"><span>필수 생활용품</span><span>250,000원</span></div>
+                            <div class="ai-card-row"><span>중개수수료(월세 50)</span><span>200,000원</span></div>
+                            <div class="ai-card-actions">
+                                <button class="ai-action-btn" onclick="switchTab('budget')">이사 예산 관리하기</button>
+                                <button class="ai-action-btn" onclick="showNearbyPropertiesList()">주변 매물 탐색</button>
+                            </div>
+                         </div>`;
+        } else if (msg.includes("보증금") || msg.includes("계획") || msg.includes("종잣돈")) {
+            appendedCardHtml = `<div class="ai-card" style="margin-top: 1rem;">
+                            <div class="ai-card-title"><i class="fa-solid fa-piggy-bank"></i> 희망두배 청년통장 1,000만원 플랜</div>
+                            <div class="ai-card-big-number">단 2년 소요! (1년 단축)</div>
+                            <div class="ai-card-row"><span>내 저축액 (월 15만)</span><span>3,600,000원</span></div>
+                            <div class="ai-card-row"><span>지자체 매칭 (월 15만)</span><span style="color:var(--success);">+3,600,000원</span></div>
+                            <div class="ai-card-row"><span>기존 보유 자산 합산</span><span>2,800,000원</span></div>
+                            <div class="ai-card-actions">
+                                <button class="ai-action-btn" onclick="switchTab('benefits')">관련 혜택 공고 보기</button>
+                            </div>
+                         </div>`;
+        } else if (geminiText.includes("매물지도") || geminiText.includes("지도") || geminiText.includes("매물")) {
+            // 자연어 대화 중 매물을 언급했을 때 버튼 자동 추가
+            appendedCardHtml = `<div class="ai-card-actions" style="margin-top: 15px;">
+                            <button class="ai-action-btn" onclick="showNearbyPropertiesList()" style="background: var(--primary); color: white; border: none; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">📍 실시간 내 주변 매물 리스트업 하기</button>
+                         </div>`;
+        }
+
+        let aiResponse = geminiText + appendedCardHtml;
+        
+        // Remove typing indicator
+        const tDiv = document.getElementById(typingId);
+        if(tDiv) tDiv.remove();
+
+        addMessageToChat(aiResponse, 'ai');
+        
+        // Show suggestions again if needed
+        if (suggestionChips) {
+            setTimeout(() => {
+                suggestionChips.style.display = 'flex';
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 1000);
+        }
+    }
+
+    // Call the async handler
+    handleAsync().catch(err => console.error(err));
+}
+
+// Bind Events
+if (chatSendBtn) {
+    chatSendBtn.addEventListener('click', () => {
+        handleUserMessage(chatInput.value);
+    });
+}
+
+if (chatInput) {
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleUserMessage(chatInput.value);
+        }
+    });
+}
+
+// Global function for suggestion chips (populates input, doesn't auto-send)
+window.fillInput = function(msg) {
+    if (chatInput) {
+        chatInput.value = msg;
+        chatInput.focus();
+    }
+};
+
+// 마우스 휠로 추천 칩 가로 스크롤 허용
+if (suggestionChips) {
+    suggestionChips.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+            e.preventDefault(); // 기본 세로 스크롤 방지
+            suggestionChips.scrollLeft += e.deltaY; // 세로 휠을 가로 스크롤로 변환
+        }
+    });
+}
+
+window.showNearbyPropertiesList = function() {
+    // 1. Show AI typing indicator
+    const typingId = 'typing-' + Date.now();
+    const typingHtml = `
+        <div class="chat-bubble" style="background: transparent; border: none; box-shadow: none; padding: 0;">
+            <div class="typing-indicator">
+                GPS 위치 권한을 확인하고 주변 매물을 탐색 중입니다... <span></span><span></span><span></span>
+            </div>
+        </div>
+    `;
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message ai';
+    typingDiv.id = typingId;
+    typingDiv.innerHTML = typingHtml;
+    chatContainer.appendChild(typingDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // 2. Fetch Geolocation
+    if (!navigator.geolocation) {
+        finishPropertySearch(typingId, false);
         return;
     }
 
-    // 구글맵 API 객체가 로드되었는지 확인
-    if (typeof google === 'object' && typeof google.maps === 'object') {
-        document.getElementById('map-placeholder').style.display = 'none';
-        const mapContainer = document.getElementById('map');
-        mapContainer.style.display = 'block';
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            finishPropertySearch(typingId, true, position);
+        },
+        (error) => {
+            finishPropertySearch(typingId, false);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+};
 
-        let initialLat = 37.566826;
-        let initialLng = 126.9786567;
-        let initialPos = new google.maps.LatLng(initialLat, initialLng);
+function finishPropertySearch(typingId, success, position = null) {
+    const tDiv = document.getElementById(typingId);
+    if(tDiv) tDiv.remove();
 
-        globalMap = new google.maps.Map(mapContainer, {
-            center: initialPos,
-            zoom: 15,
-            disableDefaultUI: true,
-            zoomControl: true
-        });
-
-        placesService = new google.maps.places.PlacesService(globalMap);
-
-        // 1. 현재 사용자 위치 가져오기
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                const userPos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-
-                // 내 위치 마커
-                displayMarker(userPos, '📍 내 위치');
-                globalMap.setCenter(userPos);
-
-                // 2. 주변 '부동산' 검색
-                searchPlaces(userPos);
-
-            }, function (error) {
-                console.log("위치 정보를 가져올 수 없습니다: ", error);
-                searchPlaces(initialPos);
-            });
-        } else {
-            searchPlaces(initialPos);
-        }
-
-        function searchPlaces(location) {
-            const request = {
-                location: location,
-                radius: '1000',
-                keyword: '공인중개사'
-            };
-            placesService.nearbySearch(request, function (results, status) {
-                if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-                    for (let i = 0; i < results.length; i++) {
-                        displayRealEstateMarker(results[i]);
-                    }
-                } else {
-                    console.log("실제 장소를 찾지 못해 MVP 체험용 더미 마커를 표시합니다.");
-                    const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-                    const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
-                    const mockPlaces = [
-                        {
-                            name: "청년안심 공인중개사",
-                            vicinity: "현재 위치에서 약 150m (체험용)",
-                            geometry: { location: new google.maps.LatLng(lat + 0.0015, lng + 0.0015) }
-                        },
-                        {
-                            name: "내집마련 부동산",
-                            vicinity: "현재 위치에서 약 300m (체험용)",
-                            geometry: { location: new google.maps.LatLng(lat - 0.002, lng + 0.001) }
-                        },
-                        {
-                            name: "다해방 부동산사무소",
-                            vicinity: "현재 위치에서 약 450m (체험용)",
-                            geometry: { location: new google.maps.LatLng(lat + 0.001, lng - 0.0025) }
-                        }
-                    ];
-                    mockPlaces.forEach(place => displayRealEstateMarker(place));
-                }
-            });
-        }
-
-        // 내 위치 마커 표시 함수
-        function displayMarker(position, message) {
-            const marker = new google.maps.Marker({
-                position: position,
-                map: globalMap
-            });
-            const infoWindow = new google.maps.InfoWindow({
-                content: `<div style="padding:5px; font-size:12px; font-weight:bold;">${message}</div>`
-            });
-            infoWindow.open(globalMap, marker);
-        }
-
-        // 주변 부동산 마커 표시
-        function displayRealEstateMarker(place) {
-            const marker = new google.maps.Marker({
-                position: place.geometry.location,
-                map: globalMap
-            });
-
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <div style="padding:10px; font-size:13px; font-weight:bold; color: #0f172a; border-radius:8px; display:flex; flex-direction:column; gap:10px; min-width: 160px;">
-                        <div>
-                            🏢 ${place.name}<br>
-                            <span style="font-size:11px; color:#64748b; font-weight:normal; line-height: 1.4; display: block; margin-top: 3px;">${place.vicinity}</span>
-                        </div>
-                        <button onclick="window.open('https://m.land.naver.com/', '_blank')" 
-                                style="background-color:#0284c7; color:white; border:none; border-radius:6px; padding:8px 10px; font-size:12px; font-weight:bold; cursor:pointer; font-family:'Pretendard', sans-serif; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                            <i class="fa-solid fa-arrow-up-right-from-square"></i> 이 주변 실제 매물 보기
-                        </button>
-                    </div>
-                `
-            });
-
-            marker.addListener('click', () => {
-                infoWindow.open(globalMap, marker);
-            });
-        }
-
-        // --- 내 위치 찾기 버튼 연동 ---
-        const btnMyLocation = document.getElementById('btn-my-location');
-        if (btnMyLocation) {
-            btnMyLocation.addEventListener('click', () => {
-                // 시각적 피드백
-                const originalHtml = btnMyLocation.innerHTML;
-                btnMyLocation.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 위치 찾는 중...';
-
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function (position) {
-                        const userPos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                        globalMap.setCenter(userPos);
-                        displayMarker(userPos, '📍 최근 내 위치');
-
-                        // 기존 내용 지우고 (원할 경우 필요하지만 구글 Place는 그냥 마커 덧씌움 방지를 위해 초기화가 필요할 수도 있음, MVP니까 덧씌우기로 둠)
-                        searchPlaces(userPos);
-
-                        btnMyLocation.innerHTML = originalHtml;
-                    }, function (error) {
-                        alert('위치 정보를 가져올 수 없습니다. 브라우저 위치 접근 권한을 허용해 주세요.');
-                        btnMyLocation.innerHTML = originalHtml;
-                    });
-                } else {
-                    alert('현재 브라우저에서는 위치 기능을 지원하지 않습니다.');
-                    btnMyLocation.innerHTML = originalHtml;
-                }
-            });
-        }
-
-        mapInitialized = true;
-    } else {
-        console.warn("구글 API 로드에 실패했거나 키가 유효하지 않습니다. 목업을 계속 보여줍니다.");
+    // 로컬 환경(file://) 등에서 권한이나 HTTPS 문제로 GPS가 실패할 경우 조용히 강남역 좌표로 모킹
+    if (!success || !position) {
+        position = { coords: { latitude: 37.4979, longitude: 127.0276 } };
     }
+
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    const naverUrl = `https://new.land.naver.com/rooms?lat=${lat}&lon=${lng}&z=16`;
+    
+    const aiResponse = "📍 **내 위치 확인 완료!** 현재 계신 곳 반경 1km 내외의 추천 매물을 찾았습니다!<br>아래 카드를 클릭하시면 **네이버 부동산(Npay)** 앱/웹이 열리며 사용자님 주변 지도가 바로 표시됩니다.<br>" +
+        `<div style="display:flex; flex-direction:column; gap:0.8rem; margin-top:1rem;">
+            <!-- 매물 1 -->
+            <div onclick="window.open('${naverUrl}', '_blank')" style="background:white; padding:1rem; border-radius:12px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05); cursor:pointer; transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-weight:700; color:var(--text-main); font-size:1rem;">현재 위치 반경 500m 쉐어하우스</span>
+                    <span style="color:var(--primary); font-weight:800; font-size:1.1rem;">월 35~40만</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">초기 자금 부담 적음 | 풀옵션 선별</div>
+                <div style="font-size:0.8rem; color:#03c75a; font-weight:700;"><i class="fa-solid fa-location-dot"></i> Npay 부동산에서 내 주변 매물 보기</div>
+            </div>
+            <!-- 매물 2 -->
+            <div onclick="window.open('${naverUrl}', '_blank')" style="background:white; padding:1rem; border-radius:12px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05); cursor:pointer; transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-weight:700; color:var(--text-main); font-size:1rem;">버팀목 대출 가능 안심 원룸</span>
+                    <span style="color:var(--primary); font-weight:800; font-size:1.1rem;">월 45~50만</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">전세/반전세 | 관리비 저렴한 곳</div>
+                <div style="font-size:0.8rem; color:#03c75a; font-weight:700;"><i class="fa-solid fa-location-dot"></i> Npay 부동산에서 내 주변 매물 보기</div>
+            </div>
+        </div>`;
+
+    addMessageToChat(aiResponse, 'ai');
 }
 
 // --- Calendar Modal Logic ---
