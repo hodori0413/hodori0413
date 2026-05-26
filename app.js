@@ -988,12 +988,12 @@ const newsData = [
     {
         city: 'incheon',
         isNew: false,
-        tag: '📍 인천 / 금융지원',
+        tag: '📍 인천 / 도약지원',
         tagStyle: 'background:#dcfce7; color:#166534; border: 1px solid #bbf7d0;',
-        title: "인천시, 소상공인 경영안정자금 100억원 추가 지원 결정",
-        description: '인천시는 지역 경제 활성화를 위해 관내 소상공인을 대상으로 한 경영안정자금 100억 원을 5월부터 추가로 융자 지원하기로 했습니다. 금리 부담을 낮추는 혜택이 포함됩니다. (2026년 5월 2일 보도)',
-        link: 'https://search.naver.com/search.naver?where=news&query=%EC%9D%B8%EC%B2%9C%EC%8B%9C+%EC%86%8C%EC%83%81%EA%B3%B5%EC%9D%B8+%EA%B2%BD%EC%98%81%EC%95%88%EC%A0%95%EC%9E%90%EA%B8%88',
-        linkText: '인천시 융자지원 뉴스 보러가기'
+        title: "인천시, 2026 청년 주거·취업 통합 패키지 '청년도약플러스' 본격 시행",
+        description: '인천광역시는 관내 무주택 청년들의 주거 안정과 경제적 안착을 지원하기 위해 매월 최대 20만 원의 월세 보조와 자산 관리 재무 상담을 결합한 통합 청년도약플러스 패키지 사업을 추진합니다. (2026년 4월 18일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%9D%B8%EC%B2%9C%EC%8B%9C+%EC%B2%AD%EB%85%84+%EB%8F%84%EC%95%BD+%EC%A7%85%EC%A4%91+%EC%A7%80%EC%9B%90',
+        linkText: '인천 청년도약 신청 보러가기'
     },
     {
         city: 'incheon',
