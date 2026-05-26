@@ -956,6 +956,16 @@ const newsData = [
         linkText: '서울시 리테크 뉴스 보러가기'
     },
     {
+        city: 'seoul',
+        isNew: false,
+        tag: '📍 서울 / 주거안심',
+        tagStyle: 'background:#e0f2fe; color:#0284c7; border: 1px solid #bae6fd;',
+        title: "서울시 역세권 청년안심주택 공급기준 완화... 입주 기회 확대",
+        description: '서울시가 역세권 청년안심주택의 소득 제한 기준을 완화하여 사회초년생의 입주 자격을 넓히고 맞춤형 주거비 보조 한도를 추가 증액하기로 결정했습니다. (2026년 5월 15일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%84%9C%EC%9A%B8%EC%8B%9C+%EC%B2%AD%EB%85%84+%EC%95%88%EC%8B%9C%EC%A3%BC%ED%83%9D',
+        linkText: '안심주택 입주 안내'
+    },
+    {
         city: 'busan',
         isNew: false,
         tag: '📍 부산 / 지역경제',
@@ -964,6 +974,16 @@ const newsData = [
         description: '부산 지역의 제조업 체감경기(CBSI)가 원자재 가격 상승 우려로 하락한 반면, 건설 공사 및 관광객 유입의 영향으로 비제조업은 회복세를 보이고 있습니다. (2026년 4월 말 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EB%B6%80%EC%82%B0+%EC%A0%9C%EC%A1%B0%EC%97%85+%EC%B2%B4%EA%B0%90%EA%B2%BD%EA%B8%B0',
         linkText: '부산 체감경기 뉴스 보러가기'
+    },
+    {
+        city: 'busan',
+        isNew: false,
+        tag: '📍 부산 / 월세지원',
+        tagStyle: 'background:#fef08a; color:#854d0e; border: 1px solid #fef08a;',
+        title: "부산시 청년 월세 특별지원 사업 2차 모집... 월 최대 20만원 지원",
+        description: '부산광역시는 무주택 독립 청년들의 주거 안정을 돕기 위해 12개월간 매달 최대 20만 원의 월세를 현금 지원하는 2차 특별 지원 사업 모집 공고를 발표했습니다. (2026년 5월 12일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EB%B6%80%EC%82%B0%EC%8B%9C+%EC%B2%AD%EB%85%84+%EC%9B%94%EC%84%B8+%ED%8A%B9%EB%B3%84%EC%A7%80%EC%9B%90',
+        linkText: '부산 월세 신청 바로가기'
     },
     {
         city: 'incheon',
@@ -976,6 +996,16 @@ const newsData = [
         linkText: '인천시 융자지원 뉴스 보러가기'
     },
     {
+        city: 'incheon',
+        isNew: false,
+        tag: '📍 인천 / 주거안전',
+        tagStyle: 'background:#dcfce7; color:#166534; border: 1px solid #bbf7d0;',
+        title: "인천 청년 전세보증금 반환보증료 전액 지원... 안심 전세 실현",
+        description: '인천광역시는 사회초년생의 보증금 전세사기 피해를 적극 예방하기 위해 최대 30만 원 상당의 HUG 전세금 반환보증 보험 가입료 전액을 환급해 주는 안심 정책을 상시 시행 중입니다. (2026년 5월 18일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%9D%B8%EC%B2%9C+%EC%B2%AD%EB%85%84+%EC%A0%84%EC%84%B8%EB%B3%B4%EC%A6%9D%EA%B8%B0+%EB%B3%B4%EC%A6%9D%EB%A3%8C',
+        linkText: '반환보증료 지원 신청'
+    },
+    {
         city: 'daegu',
         isNew: false,
         tag: '📍 대구 / 부동산금융',
@@ -984,6 +1014,16 @@ const newsData = [
         description: '대구 지역 아파트 매매 거래량이 소폭 반등하며 바닥론이 조심스럽게 제기되는 가운데, 시중은행의 주택담보대출 금리 변동이 향후 주요 변수가 될 전망입니다. (2026년 4월 25일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EA%B5%AC+%EC%95%84%ED%8C%8C%ED%8A%B8+%EB%A7%A4%EB%A7%A4%EA%B0%80+%EC%A3%BC%EB%8B%B4%EB%8C%80',
         linkText: '대구 아파트 수성구 뉴스 보러가기'
+    },
+    {
+        city: 'daegu',
+        isNew: false,
+        tag: '📍 대구 / 자산형성',
+        tagStyle: 'background:#ffedd5; color:#c2410c; border: 1px solid #fed7aa;',
+        title: "대구시 청년 희망적금 만기 도래... 지자체 3배 매칭 지원금 지급",
+        description: '대구광역시는 관내 저소득 청년들이 목돈을 형성할 수 있도록 돕는 대구 청년희망적금 가입자 중 성실 납입자들을 대상으로 300% 수준의 시 예산 매칭 적립금을 일제히 지급합니다. (2026년 5월 14일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EA%B5%AC%EC%8B%9C+%EC%B2%AD%EB%85%84+%ED%9D%AC%EB%A7%9D%EC%A0%81%EA%B8%90',
+        linkText: '대구 청년적금 확인하기'
     },
     {
         city: 'daejeon',
@@ -996,6 +1036,16 @@ const newsData = [
         linkText: '대전 벤처기업 투자 뉴스 보러가기'
     },
     {
+        city: 'daejeon',
+        isNew: false,
+        tag: '📍 대전 / 창업·재무',
+        tagStyle: 'background:#fce7f3; color:#be185d; border: 1px solid #fbcfe8;',
+        title: "대전시 청년 창업가 특별 저금리 '디딤돌 금융 지원' 대폭 확대",
+        description: '대전광역시는 혁신 사업 아이디어를 보유한 2030 청년 스타트업과 소상공인들을 지원하기 위해 1%대 수준의 특별 경영 자금 대출 및 우대 금리 한도를 확대 시행합니다. (2026년 5월 19일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EC%A0%84%EC%8B%9C+%EC%B2%AD%EB%85%84+%EC%B0%BD%EC%97%85+%EA%B8%88%EC%9C%B5',
+        linkText: '창업자금 디딤돌 지원 안내'
+    },
+    {
         city: 'gwangju',
         isNew: false,
         tag: '📍 광주 / 지역화폐',
@@ -1004,6 +1054,16 @@ const newsData = [
         description: '광주광역시는 고물가로 인한 시민들의 재무적 부담을 덜고 골목상권 소비를 촉진하기 위해 5월 한 달간 광주상생카드 할인율을 10%로 상향 조정했습니다. (2026년 4월 29일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EA%B4%91%EC%A3%BC%EC%83%83%EC%83%9D%EC%B9%B4%EB%93%9C+10%25+%ED%95%A0%EC%9D%B8',
         linkText: '광주상생카드 뉴스 보러가기'
+    },
+    {
+        city: 'gwangju',
+        isNew: false,
+        tag: '📍 광주 / 주거분리',
+        tagStyle: 'background:#f3e8ff; color:#7e22ce; border: 1px solid #e9d5ff;',
+        title: "광주 청년 주거급여 특별 분리 지급 실시... 자취 청년 부담 해소",
+        description: '광주광역시는 취약 가구 내에서 독립하여 학업이나 직장을 준비하는 20대 자취 청년들에게 부모 가구와는 별도로 주거 수당을 분리하여 직접 지급하는 특별 지원을 개시했습니다. (2026년 5월 16일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EA%B4%91%EC%A3%BC+%EC%B2%AD%EB%85%84+%EC%A3%BC%EA%B1%B0%EC%9급%EC%97%AC+%EB%B6%84%EB%A6%AC',
+        linkText: '주거급여 분리지급 신청'
     }
 ];
 
