@@ -341,6 +341,17 @@
                         <p>앱 설정 및 고객지원을 확인할 수 있습니다.</p>
                     </div>
 
+                    <!-- Google Gemini API 키 설정 카드 -->
+                    <div class="result-card" style="margin-bottom: 1rem; text-align: left;">
+                        <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-key" style="color: var(--primary);"></i> Google Gemini API 키 설정</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">AI 코칭 기능을 이용하기 위해 Google AI Studio에서 발급받은 API 키를 입력해 주세요. 키는 브라우저 보안 저장소에 안전하게 보관됩니다.</p>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="gemini-api-key-input" placeholder="API Key 입력 (AIzaSy...)" style="flex: 1; padding: 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem;">
+                            <button id="save-api-key-btn" class="btn-primary" style="padding: 0.8rem 1.2rem; width: auto; font-size: 0.9rem; white-space: nowrap;">저장</button>
+                        </div>
+                        <p id="api-key-status" style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--success); font-weight: bold; display: none;">✓ API 키가 저장되었습니다.</p>
+                    </div>
+
                     <div class="result-card" style="margin-bottom: 1rem; text-align: center;">
                         <i class="fa-solid fa-circle-question" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
                         <h3 style="margin-bottom: 0.5rem;">도움말 및 가이드</h3>

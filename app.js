@@ -413,6 +413,9 @@ logoutBtn.addEventListener('click', () => {
     // 로그아웃 시 현재 상태 한 번 더 저장
     saveUserProgress();
 
+    // 대화 기록 초기화
+    geminiChatHistory = [];
+
     // 입력창 초기화
     usernameInput.value = '';
     passwordInput.value = '';
@@ -445,30 +448,88 @@ logoutBtn.addEventListener('click', () => {
 });
 
 // --- AI Coach Chat Logic ---
-const GEMINI_API_KEY = "AIzaSyDa8jEQPUbKM_vBRheCZDIWqRSuNExjZ4M"; // 사용자 제공 API 키
+
+// API Key Management (Google Gemini)
+const GEMINI_API_KEY_KEY = 'GEMINI_API_KEY_LOCAL';
+
+function getGeminiApiKey() {
+    return localStorage.getItem(GEMINI_API_KEY_KEY) || "";
+}
+
+// UI Elements for API Key
+const geminiApiKeyInput = document.getElementById('gemini-api-key-input');
+const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+const apiKeyStatus = document.getElementById('api-key-status');
+
+if (geminiApiKeyInput) {
+    // Load stored key on init
+    geminiApiKeyInput.value = getGeminiApiKey();
+}
+
+if (saveApiKeyBtn && geminiApiKeyInput) {
+    saveApiKeyBtn.addEventListener('click', () => {
+        const key = geminiApiKeyInput.value.trim();
+        if (key) {
+            localStorage.setItem(GEMINI_API_KEY_KEY, key);
+            if (apiKeyStatus) {
+                apiKeyStatus.style.display = 'block';
+                setTimeout(() => {
+                    apiKeyStatus.style.display = 'none';
+                }, 3000);
+            }
+            alert("Gemini API 키가 브라우저에 안전하게 저장되었습니다.");
+        } else {
+            localStorage.removeItem(GEMINI_API_KEY_KEY);
+            alert("Gemini API 키가 삭제되었습니다. 실시간 코칭을 이용하려면 키가 필요합니다.");
+        }
+    });
+}
 
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
 const chatContainer = document.getElementById('chat-container');
 const suggestionChips = document.getElementById('suggestion-chips');
 
-let chatHistory = [];
+// ChatGPT style continuous conversation history (Gemini format)
+let geminiChatHistory = [];
 
 async function fetchGeminiResponse(userMessage) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        return `⚠️ **API 키 누락**: AI 코칭 서비스를 이용하려면 우측 하단의 **[설정 ⚙️]** 탭으로 이동하셔서 **Google Gemini API 키**를 먼저 등록해 주세요. 발급받으신 키를 저장하시면 즉시 실시간 1:1 코칭을 받으실 수 있습니다! 🔑`;
+    }
+
+    // Using gemini-2.5-flash model as requested
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     const spentPercent = budgetData.totalBudget > 0 ? ((budgetData.totalSpent / budgetData.totalBudget) * 100).toFixed(1) : 0;
     const remaining = budgetData.totalBudget - budgetData.totalSpent;
     
-    const systemPrompt = `너는 월지킴이 AI의 청년주거 자산 코치야. 대학생들이 월세, 생활비, 자산 관리로 고민할 때 친근하게 도와주는 든든한 코치야. 말투는 딱딱하지 않고 대학생 친구처럼 친근하고 솔직하면서도 격려해주는 스타일로 해줘. 현재 사용자의 이번 달 총 예산은 ${budgetData.totalBudget.toLocaleString()}원이고, 그 중 ${spentPercent}%를 사용했어 (남은 예산: ${remaining.toLocaleString()}원). 보유 자산은 300만원으로 가정해.`;
+    // Core coach persona (System Instruction)
+    const systemInstruction = `너는 월지킴이 AI의 청년주거 자산 코치이다. 대학생들에게 든든하고 전문적인 코치로서 조언한다. 말투는 친근하지만 코치답게 차분하고 신뢰감 있게 유지한다. 재무, 주거, 생활비 관련 질문에는 전문적으로 답변하고, 일상 대화도 자연스럽게 받아준다.
+현재 사용자의 이번 달 예산 현황 정보는 다음과 같다:
+- 이번 달 총 예산: ${budgetData.totalBudget.toLocaleString()}원
+- 현재 총 지출 금액: ${budgetData.totalSpent.toLocaleString()}원 (${spentPercent}% 사용 완료)
+- 남은 예산: ${remaining.toLocaleString()}원
+- 보유 자산: 3,000,000원 (가상 자산)
+사용자가 주거나 재무 계획을 물어볼 때 이 수치들을 주시하고 분석하여 현실적이고 구체적인 조언을 제공해줘.`;
+
+    // Append user message to the conversation history
+    geminiChatHistory.push({
+        role: "user",
+        parts: [{ text: userMessage }]
+    });
+
+    // Limit history length to prevent huge payloads (e.g. keep last 20 messages)
+    if (geminiChatHistory.length > 20) {
+        geminiChatHistory = geminiChatHistory.slice(geminiChatHistory.length - 20);
+    }
 
     const payload = {
-        contents: [
-            {
-                role: "user",
-                parts: [{ text: systemPrompt + "\n\n사용자 질문: " + userMessage }]
-            }
-        ],
+        contents: geminiChatHistory,
+        systemInstruction: {
+            parts: [{ text: systemInstruction }]
+        },
         generationConfig: {
             temperature: 0.7,
             topP: 0.95,
@@ -486,19 +547,41 @@ async function fetchGeminiResponse(userMessage) {
         
         if (data.error) {
             console.error("Gemini API Error:", data.error);
+            // If error, remove the last user message from history to prevent corrupt state
+            geminiChatHistory.pop();
             return `앗, 제가 지금 생각 정리에 문제가 생겼어요. 😢<br><span style="font-size:0.8rem; color:var(--danger);">(API 오류: ${data.error.message || '알 수 없는 오류'})</span>`;
         }
         
         if (data.candidates && data.candidates[0].content) {
             let text = data.candidates[0].content.parts[0].text;
-            // 간단한 마크다운 파싱
+            
+            // Append assistant response to history
+            geminiChatHistory.push({
+                role: "model",
+                parts: [{ text: text }]
+            });
+
+            // Premium simple markdown parser
+            // Bold
             text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            // Bullet points starting with * or -
+            text = text.split('\n').map(line => {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+                    return `• ${trimmed.substring(2)}`;
+                }
+                return line;
+            }).join('\n');
+            // Newlines
             text = text.replace(/\n/g, '<br>');
             return text;
         }
+        
+        geminiChatHistory.pop();
         return "음, 무슨 말인지 잘 이해하지 못했어요. 다시 한번 말씀해주실래요?";
     } catch (e) {
         console.error("Fetch Error:", e);
+        geminiChatHistory.pop();
         return "앗, 통신 상태가 좋지 않아서 연결이 끊어졌어요. 나중에 다시 시도해주세요! 😭";
     }
 }
@@ -506,22 +589,12 @@ async function fetchGeminiResponse(userMessage) {
 function addMessageToChat(text, sender) {
     if (!text.trim()) return;
     
-    // Save to history (simulation)
-    chatHistory.push({ sender, text });
-    
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${sender}`;
     
-    let html = '';
-    if (sender === 'ai') {
-        html = `
-            <div class="chat-bubble">${text}</div>
-        `;
-    } else {
-        html = `
-            <div class="chat-bubble">${text}</div>
-        `;
-    }
+    let html = `
+        <div class="chat-bubble">${text}</div>
+    `;
     
     messageDiv.innerHTML = html;
     chatContainer.appendChild(messageDiv);
@@ -532,6 +605,15 @@ function addMessageToChat(text, sender) {
 
 function handleUserMessage(msg) {
     if (!msg.trim()) return;
+    
+    // API Key Check
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        alert("앗! AI 코칭을 사용하려면 먼저 [설정 ⚙️] 탭에서 'Google Gemini API 키'를 등록해 주세요!");
+        addMessageToChat("⚠️ **안내**: 아직 Google Gemini API 키가 설정되지 않았습니다.<br>우측 하단의 **[설정 ⚙️]** 탭으로 이동하셔서 **Gemini API 키**를 입력해 주시면, 똑똑한 AI 실시간 코칭을 받으실 수 있습니다! 🔑", 'ai');
+        chatInput.value = '';
+        return;
+    }
     
     // 1. Add User Message
     addMessageToChat(msg, 'user');
