@@ -88,30 +88,13 @@
 
                 <!-- 2. 메인 대시보드 -->
                 <section id="dashboard-tab" class="tab-content active">
-                    <div class="profile-card">
-                        <div class="profile-header">
-                            <div class="tier-badge"><i class="fa-solid fa-medal"></i> <span id="user-tier">씨앗 등급
-                                    (Lv.1)</span></div>
+                    <!-- 홈 대시보드 실시간 진행률 표시 (확장/강조 버전) -->
+                    <div class="budget-overview-card" onclick="switchTab('budget')" style="background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%); border-radius: 24px; padding: 2.2rem 2rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); border: 1px solid rgba(2, 132, 199, 0.1); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="flex: 1; padding-right: 1.5rem;">
+                            <h3 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.6rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-chart-pie" style="color: var(--primary);"></i> 이번 달 지출 현황</h3>
+                            <p style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.6;">이번 달 총 예산 <strong style="color: var(--text-main); font-weight: 700;"><span id="dash-total-budget">500,000</span>원</strong> 중<br>현재 <strong style="color: var(--primary); font-size: 1.4rem; font-weight: 800;" id="dash-total-spent">0</strong>원을 소비하셨습니다.</p>
                         </div>
-                        <div class="point-area">
-                            <span class="point-label">보유 드림 포인트 (Dream Point)</span>
-                            <div class="point-value">
-                                <i class="fa-solid fa-p"></i> <span id="user-points">0</span> P
-                            </div>
-                        </div>
-                        <div class="progress-container">
-                            <div id="point-progress-bar" class="progress-bar" style="width: 0%"></div>
-                        </div>
-                        <p id="point-progress-text" class="progress-text">다음 새싹 등급까지 1000P 남았어요!</p>
-                    </div>
-
-                    <!-- 홈 대시보드 실시간 진행률 표시 -->
-                    <div class="budget-overview-card" onclick="switchTab('budget')" style="background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); border: 1px solid var(--border); cursor: pointer;">
-                        <div>
-                            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-main);">이번 달 지출 현황</h3>
-                            <p style="font-size: 0.9rem; color: var(--text-muted);">총 예산 <span id="dash-total-budget">500,000</span>원 중<br><strong style="color: var(--primary); font-size: 1.1rem;" id="dash-total-spent">0</strong>원 사용</p>
-                        </div>
-                        <div class="circular-progress" id="dash-budget-progress">
+                        <div class="circular-progress" id="dash-budget-progress" style="flex-shrink: 0; box-shadow: 0 10px 25px rgba(2, 132, 199, 0.15);">
                             <span class="progress-value" id="dash-budget-percent">0%</span>
                         </div>
                     </div>

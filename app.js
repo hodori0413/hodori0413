@@ -78,7 +78,7 @@ function saveUserProgress() {
 function addPoints(pts) {
     totalPoints += pts;
     progressPoints += pts;
-    userPoints.innerText = totalPoints.toLocaleString();
+    if (userPoints) userPoints.innerText = totalPoints.toLocaleString();
 
     let leveledUp = false;
     let requiredForNext = currentLevel * 1000;
@@ -91,7 +91,8 @@ function addPoints(pts) {
     }
 
     if (leveledUp) {
-        document.getElementById('user-tier').innerText = `씨앗 등급 (Lv.${currentLevel})`;
+        const utEl = document.getElementById('user-tier');
+        if (utEl) utEl.innerText = `씨앗 등급 (Lv.${currentLevel})`;
         setTimeout(() => {
             alert(`🎉 축하합니다! 씨앗 등급 Lv.${currentLevel}(으)로 레벨업 하셨습니다! 🎉\n(다음 레벨 등업 요구 점수는 ${requiredForNext}P 입니다.)`);
         }, 100);
@@ -106,11 +107,15 @@ function updateProgress() {
     let percentage = (progressPoints / requiredForNext) * 100;
     if (percentage > 100) percentage = 100;
 
-    pointProgressBar.style.transition = "width 0.5s ease-in-out";
-    pointProgressBar.style.width = percentage + "%";
+    if (pointProgressBar) {
+        pointProgressBar.style.transition = "width 0.5s ease-in-out";
+        pointProgressBar.style.width = percentage + "%";
+    }
 
     let remaining = requiredForNext - progressPoints;
-    pointProgressText.innerText = `다음 Lv.${currentLevel + 1} 등급까지 ${remaining}P 남았어요!`;
+    if (pointProgressText) {
+        pointProgressText.innerText = `다음 Lv.${currentLevel + 1} 등급까지 ${remaining}P 남았어요!`;
+    }
 }
 
 // 초기 로드시 프로그레스 바 설정
@@ -185,8 +190,9 @@ loginBtn.addEventListener('click', () => {
 
     // Set UI
     userNameDisplay.innerText = name;
-    userPoints.innerText = totalPoints.toLocaleString();
-    document.getElementById('user-tier').innerText = `씨앗 등급 (Lv.${currentLevel})`;
+    if (userPoints) userPoints.innerText = totalPoints.toLocaleString();
+    const utEl = document.getElementById('user-tier');
+    if (utEl) utEl.innerText = `씨앗 등급 (Lv.${currentLevel})`;
     updateProgress();
 
     // Transition Screens
@@ -438,8 +444,9 @@ logoutBtn.addEventListener('click', () => {
         totalPoints = 0;
         progressPoints = 0;
         currentLevel = 1;
-        userPoints.innerText = totalPoints.toLocaleString();
-        document.getElementById('user-tier').innerText = `씨앗 등급 (Lv.1)`;
+        if (userPoints) userPoints.innerText = totalPoints.toLocaleString();
+        const utEl = document.getElementById('user-tier');
+        if (utEl) utEl.innerText = `씨앗 등급 (Lv.1)`;
         updateProgress();
 
         switchTab('dashboard');

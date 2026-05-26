@@ -572,28 +572,28 @@ body {
 
 .circular-progress {
   position: relative;
-  width: 70px;
-  height: 70px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background: conic-gradient(var(--primary) 0deg, #e2e8f0 0deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 8px #f8fafc;
+  box-shadow: inset 0 0 0 10px #f8fafc;
 }
 
 .circular-progress::before {
   content: "";
   position: absolute;
-  width: 54px;
-  height: 54px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background-color: white;
 }
 
 .progress-value {
   position: relative;
-  font-size: 1rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--primary);
 }
