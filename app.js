@@ -903,68 +903,107 @@ if (resetAccountBtn) {
 
 // --- News Filter Logic ---
 const newsData = [
+    // === [NEW] 2026 하반기 전국 공통 최신 금융 정책 뉴스 ===
+    {
+        city: 'new_all',
+        isNew: true,
+        tag: '🔥 [신규] 전국 / 주거지원',
+        tagStyle: 'background:#eff6ff; color:#1d4ed8; border: 1px solid #bfdbfe;',
+        title: "2026 하반기 청년 주거안정 대책 발표... LH 전세임대 공급 2배 확대",
+        description: '국토교통부는 2026년 하반기 청년들의 보증금 마련 부담을 줄이기 위해 전세임대 주택 공급을 당초 계획보다 2배 늘리고, 버팀목 대출의 우대 금리 우대 한도를 대폭 상향하기로 최종 확정했습니다. (2026년 5월 26일 속보)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%B2%AD%EB%85%84+%EC%A3%BC%EA%B1%B0%EC%95%88%EC%A0%95+%EB%8C%80%EC%B1%85+%EC%A0%84%EC%84%B8%EC%9E%84%EB%8C%80',
+        linkText: '정부 상세 대책 보러가기'
+    },
+    {
+        city: 'new_all',
+        isNew: true,
+        tag: '🔥 [신규] 전국 / 자산형성',
+        tagStyle: 'background:#f0fdf4; color:#15803d; border: 1px solid #bbf7d0;',
+        title: "청년도약계좌 매칭 기여금 비율 상향... 목돈 마련 혜택 대폭 강화",
+        description: '금융위원회는 일하는 청년들의 효율적인 자산 형성을 지원하기 위해 청년도약계좌의 매칭 정부 기여금 지급 비율을 확대 개편하여, 만기 시 수령 금액을 한층 더 높이기로 결정했습니다. (2026년 5월 24일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%B2%AD%EB%85%84%EB%8F%84%EC%95%BD%EA%B3%84%EC%A2%8C+%EA%B8%B0%EC%97%AC%EA%B8%88',
+        linkText: '기여금 개편 뉴스 보러가기'
+    },
+    {
+        city: 'new_all',
+        isNew: true,
+        tag: '🔥 [신규] 전국 / 금융 혜택',
+        tagStyle: 'background:#fdf2f8; color:#be185d; border: 1px solid #fbcfe8;',
+        title: "5대 시중은행, 실질 최고 연 7.5% 우대금리 청년 적금 동시 출시",
+        description: '주요 시중은행들이 공동으로 사회초년생의 종잣돈 마련을 돕는 우대 적금 상품을 대거 론칭했습니다. 기본 금리에 급여 이체 및 주택청약 계좌 연동 시 연 최대 7.5%의 파격적 이자를 챙길 수 있습니다. (2026년 5월 21일 보도)',
+        link: 'https://search.naver.com/search.naver?where=news&query=%EC%8B%9C%EC%A4%91%EC%9D%80%ED%96%89+%EC%B2%AD%EB%85%84+%EC%A0%81%EA%B8%88+%EC%9A%B0%EB%8C%80',
+        linkText: '은행별 특별 금리 비교'
+    },
+    // === [OLD] 이전 금융/부동산 뉴스 (지역 클릭 시 노출) ===
     {
         city: 'all_only',
+        isNew: false,
         tag: '🌐 전국 공통 / 경제동향',
-        tagStyle: 'background:#fce7f3; color:#be185d;',
+        tagStyle: 'background:#f1f5f9; color:#475569; border: 1px solid #cbd5e1;',
         title: "한국은행, 5월 기준금리 동결 전망... 고물가 장기화 여파",
         description: '최근 소비자물가 상승세가 꺾이지 않으면서 한국은행이 이달 말 예정된 금융통화위원회에서 기준금리를 현행 수준으로 동결할 가능성이 커졌습니다. (2026년 5월 10일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%ED%95%9C%EA%B5%AD%EC%9D%80%ED%96%89+%EA%B8%B0%EC%A4%80%EA%B8%88%EB%A6%AC+%EB%8F%99%EA%B2%B0',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '금리 동결 뉴스 보러가기'
     },
     {
         city: 'seoul',
+        isNew: false,
         tag: '📍 서울 / 재무상담',
-        tagStyle: 'background:#e0f2fe; color:#0284c7;',
+        tagStyle: 'background:#e0f2fe; color:#0284c7; border: 1px solid #bae6fd;',
         title: "서울시 '2026 리(Re)테크' 본격 추진... 시민 재무설계 돕는다",
         description: '서울시는 고금리 상황 속에서 시민들의 안정적인 자산관리와 은퇴 설계를 돕기 위해 무료 경제교육 및 1:1 맞춤형 재무상담 프로그램을 본격적으로 시작했습니다. (2026년 4월 8일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EC%84%9C%EC%9A%B8%EC%8B%9C+%EB%A6%AC%ED%85%8C%ED%81%AC+%EC%9E%AC%EB%AC%B4%EC%83%81%EB%8B%B4',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '서울시 리테크 뉴스 보러가기'
     },
     {
         city: 'busan',
+        isNew: false,
         tag: '📍 부산 / 지역경제',
-        tagStyle: 'background:#fef08a; color:#854d0e;',
+        tagStyle: 'background:#fef08a; color:#854d0e; border: 1px solid #fef08a;',
         title: "부산 제조업 5월 체감경기 하락... 비제조업은 관광객 유입으로 '회복세'",
         description: '부산 지역의 제조업 체감경기(CBSI)가 원자재 가격 상승 우려로 하락한 반면, 건설 공사 및 관광객 유입의 영향으로 비제조업은 회복세를 보이고 있습니다. (2026년 4월 말 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EB%B6%80%EC%82%B0+%EC%A0%9C%EC%A1%B0%EC%97%85+%EC%B2%B4%EA%B0%90%EA%B2%BD%EA%B8%B0',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '부산 체감경기 뉴스 보러가기'
     },
     {
         city: 'incheon',
+        isNew: false,
         tag: '📍 인천 / 금융지원',
-        tagStyle: 'background:#dcfce7; color:#166534;',
+        tagStyle: 'background:#dcfce7; color:#166534; border: 1px solid #bbf7d0;',
         title: "인천시, 소상공인 경영안정자금 100억원 추가 지원 결정",
         description: '인천시는 지역 경제 활성화를 위해 관내 소상공인을 대상으로 한 경영안정자금 100억 원을 5월부터 추가로 융자 지원하기로 했습니다. 금리 부담을 낮추는 혜택이 포함됩니다. (2026년 5월 2일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EC%9D%B8%EC%B2%9C%EC%8B%9C+%EC%86%8C%EC%83%81%EA%B3%B5%EC%9D%B8+%EA%B2%BD%EC%98%81%EC%95%88%EC%A0%95%EC%9E%90%EA%B8%88',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '인천시 융자지원 뉴스 보러가기'
     },
     {
         city: 'daegu',
+        isNew: false,
         tag: '📍 대구 / 부동산금융',
-        tagStyle: 'background:#ffedd5; color:#c2410c;',
+        tagStyle: 'background:#ffedd5; color:#c2410c; border: 1px solid #fed7aa;',
         title: "대구 수성구 아파트 매매가 바닥론 고개... 주담대 금리 변동에 촉각",
         description: '대구 지역 아파트 매매 거래량이 소폭 반등하며 바닥론이 조심스럽게 제기되는 가운데, 시중은행의 주택담보대출 금리 변동이 향후 주요 변수가 될 전망입니다. (2026년 4월 25일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EA%B5%AC+%EC%95%84%ED%8C%8C%ED%8A%B8+%EB%A7%A4%EB%A7%A4%EA%B0%80+%EC%A3%BC%EB%8B%B4%EB%8C%80',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '대구 아파트 수성구 뉴스 보러가기'
     },
     {
         city: 'daejeon',
+        isNew: false,
         tag: '📍 대전 / 투자·스타트업',
-        tagStyle: 'background:#fce7f3; color:#be185d;',
+        tagStyle: 'background:#fce7f3; color:#be185d; border: 1px solid #fbcfe8;',
         title: "대전 대덕특구 벤처기업, 5월 대규모 벤처캐피탈(VC) 투자유치 릴레이",
         description: '대전 지역의 딥테크 및 핀테크 기반 벤처기업들이 연이어 수도권 대형 벤처캐피탈로부터 수백억 원 규모의 시리즈 투자를 유치하며 자금 조달에 성공하고 있습니다. (2026년 5월 8일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EB%8C%80%EC%A0%84+%EB%8C%80%EB%8D%95%ED%8A%B9%EA%B5%AC+%EB%B2%A4%EC%B2%98%EA%B8%B0%EC%97%85+%ED%88%AC%EC%9E%90',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '대전 벤처기업 투자 뉴스 보러가기'
     },
     {
         city: 'gwangju',
+        isNew: false,
         tag: '📍 광주 / 지역화폐',
-        tagStyle: 'background:#f3e8ff; color:#7e22ce;',
+        tagStyle: 'background:#f3e8ff; color:#7e22ce; border: 1px solid #e9d5ff;',
         title: "광주상생카드(지역화폐), 5월 가정의 달 맞아 10% 특별 할인 재개",
         description: '광주광역시는 고물가로 인한 시민들의 재무적 부담을 덜고 골목상권 소비를 촉진하기 위해 5월 한 달간 광주상생카드 할인율을 10%로 상향 조정했습니다. (2026년 4월 29일 보도)',
         link: 'https://search.naver.com/search.naver?where=news&query=%EA%B4%91%EC%A3%BC%EC%83%83%EC%83%9D%EC%B9%B4%EB%93%9C+10%25+%ED%95%A0%EC%9D%B8',
-        linkText: '관련 뉴스 보러가기'
+        linkText: '광주상생카드 뉴스 보러가기'
     }
 ];
 
@@ -974,7 +1013,14 @@ function renderNews(filterCity = 'all') {
     if (!newsFeedContainer) return;
     newsFeedContainer.innerHTML = ''; // 기존 뉴스 비우기
 
-    const newsToRender = newsData.filter(news => filterCity === 'all' || news.city === filterCity || (filterCity !== 'all' && news.city === 'all_only'));
+    let newsToRender = [];
+    if (filterCity === 'all') {
+        // 전체보기일 때는 '새로운 전국 공통 최신 뉴스'만 노출
+        newsToRender = newsData.filter(news => news.isNew === true);
+    } else {
+        // 특정 지역 클릭 시, 해당 지역의 기존 뉴스 및 기존 전국 공통 뉴스(all_only)가 함께 노출됨
+        newsToRender = newsData.filter(news => news.isNew === false && (news.city === filterCity || news.city === 'all_only'));
+    }
 
     newsToRender.forEach(news => {
         const card = document.createElement('article');
