@@ -79,9 +79,6 @@ const tabContents = document.querySelectorAll('.tab-content');
 
 
 // Budget Elements
-const receiptUploadBox = document.getElementById('receipt-upload-box');
-const receiptFileUpload = document.getElementById('receipt-file-upload');
-const receiptLoading = document.getElementById('receipt-loading');
 const budgetSettingsModal = document.getElementById('budget-settings-modal');
 const btnBudgetSettings = document.getElementById('btn-budget-settings');
 const budgetSettingsCloseBtn = document.getElementById('budget-settings-close-btn');
@@ -822,32 +819,6 @@ if (btnAiRecommendBudget) {
     });
 }
 
-if (receiptUploadBox) {
-    receiptUploadBox.addEventListener('click', () => {
-        receiptFileUpload.click();
-    });
-}
-
-if (receiptFileUpload) {
-    receiptFileUpload.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            receiptUploadBox.classList.add('hidden');
-            receiptLoading.classList.remove('hidden');
-            
-            setTimeout(() => {
-                receiptLoading.classList.add('hidden');
-                receiptUploadBox.classList.remove('hidden');
-                
-                // Mock adding expense to food
-                budgetData.categories[1].spent += 15000; 
-                renderBudgetOverview();
-                alert('AI 영수증 분석 완료!\\n식비/카페 카테고리에 15,000원이 등록되었습니다.');
-                
-                receiptFileUpload.value = '';
-            }, 1500);
-        }
-    });
-}
 
 // --- Manual Expense Logging Logic ---
 const expenseCategorySelect = document.getElementById('expense-category');
@@ -904,10 +875,7 @@ if (btnAddExpense) {
         saveUserProgress();
         renderBudgetOverview();
         
-        // Gamification bonus points
-        addPoints(30);
-        
-        alert(`지출 내역이 정상 등록되었습니다! 짠테크 기입 보너스로 30P를 획득하셨습니다. 🎉`);
+
     });
 }
 
@@ -999,7 +967,8 @@ logoutBtn.addEventListener('click', () => {
 const GEMINI_API_KEY_KEY = 'GEMINI_API_KEY_LOCAL';
 
 function getGeminiApiKey() {
-    return localStorage.getItem(GEMINI_API_KEY_KEY) || "";
+    // Vercel 백엔드 마이그레이션으로 인해 더 이상 프론트엔드에서 키를 관리하지 않습니다.
+    return "";
 }
 
 // UI Elements for API Key
@@ -1079,13 +1048,8 @@ const suggestionChips = document.getElementById('suggestion-chips');
 let geminiChatHistory = [];
 
 async function fetchGeminiResponse(userMessage) {
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-        return `⚠️ **API 키 누락**: AI 코칭 서비스를 이용하려면 우측 하단의 **[설정 ⚙️]** 탭으로 이동하셔서 **Google Gemini API 키**를 먼저 등록해 주세요. 발급받으신 키를 저장하시면 즉시 실시간 1:1 코칭을 받으실 수 있습니다! 🔑`;
-    }
-
-    // Using gemini-2.5-flash model as requested
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // API 키는 백엔드(Vercel Serverless Function)에서 안전하게 관리합니다.
+    const url = `/api/gemini`;
     
     const spentPercent = budgetData.totalBudget > 0 ? ((budgetData.totalSpent / budgetData.totalBudget) * 100).toFixed(1) : 0;
     const remaining = budgetData.totalBudget - budgetData.totalSpent;
@@ -1190,15 +1154,6 @@ function addMessageToChat(text, sender) {
 
 function handleUserMessage(msg) {
     if (!msg.trim()) return;
-    
-    // API Key Check
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-        alert("앗! AI 코칭을 사용하려면 먼저 [설정 ⚙️] 탭에서 'Google Gemini API 키'를 등록해 주세요!");
-        addMessageToChat("⚠️ **안내**: 아직 Google Gemini API 키가 설정되지 않았습니다.<br>우측 하단의 **[설정 ⚙️]** 탭으로 이동하셔서 **Gemini API 키**를 입력해 주시면, 똑똑한 AI 실시간 코칭을 받으실 수 있습니다! 🔑", 'ai');
-        chatInput.value = '';
-        return;
-    }
     
     // 1. Add User Message
     addMessageToChat(msg, 'user');
