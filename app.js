@@ -68,7 +68,6 @@ const supabaseStatus = document.getElementById('supabase-status');
 
 // Signup DOM Elements
 const openSignupLink = document.getElementById('open-signup-link');
-const signupUsernameInput = document.getElementById('signup-username');
 const signupEmailInput = document.getElementById('signup-email');
 const signupPasswordInput = document.getElementById('signup-password');
 const signupPasswordErrorDiv = document.getElementById('signup-password-error');
@@ -281,9 +280,8 @@ const signupModal = document.getElementById('signup-modal');
 const signupCloseBtn = document.getElementById('signup-close-btn');
 const signupCompleteBtn = document.getElementById('signup-complete-btn');
 
-function openSignupModal(name = '', pwd = '') {
-    if (signupUsernameInput) signupUsernameInput.value = name;
-    if (signupEmailInput) signupEmailInput.value = '';
+function openSignupModal(emailVal = '', pwd = '') {
+    if (signupEmailInput) signupEmailInput.value = emailVal;
     if (signupPasswordInput) signupPasswordInput.value = pwd;
     if (signupPasswordErrorDiv) signupPasswordErrorDiv.style.display = 'none';
     if (signupModal) signupModal.classList.remove('hidden');
@@ -303,11 +301,11 @@ if (signupCloseBtn) {
 
 if (signupCompleteBtn) {
     signupCompleteBtn.addEventListener('click', async () => {
-        const username = signupUsernameInput.value.trim();
         const email = signupEmailInput.value.trim();
         const pwd = signupPasswordInput.value.trim();
+        const username = email ? email.split('@')[0] : '';
 
-        if (!username || !email || !pwd) {
+        if (!email || !pwd) {
             alert("모든 가입 정보를 올바르게 입력해주세요!");
             return;
         }
@@ -385,7 +383,7 @@ if (signupCompleteBtn) {
 
                 // 로컬 정보 저장
                 const db = loadUsersDB();
-                db[username] = {
+                db[email] = {
                     password: pwd,
                     email: email,
                     totalPoints: 0,
@@ -413,11 +411,11 @@ if (signupCompleteBtn) {
         } else {
             // 로컬 모드 회원가입
             const db = loadUsersDB();
-            if (db[username]) {
-                alert("이미 존재하는 아이디입니다.");
+            if (db[email]) {
+                alert("이미 존재하는 이메일입니다.");
                 return;
             }
-            db[username] = {
+            db[email] = {
                 password: pwd,
                 email: email,
                 totalPoints: 0,
@@ -442,7 +440,7 @@ if (signupCompleteBtn) {
             alert('계정이 성공적으로 생성되었습니다! (로컬 모드)');
             if (signupModal) signupModal.classList.add('hidden');
 
-            loginUser(username, db[username]);
+            loginUser(username, db[email]);
         }
     });
 }
@@ -454,7 +452,7 @@ loginBtn.addEventListener('click', async () => {
     const pwd = passwordInput.value.trim();
 
     if (name.length === 0 || pwd.length === 0) {
-        alert("아이디 또는 이메일과 비밀번호를 모두 입력해주세요!");
+        alert("이메일과 비밀번호를 모두 입력해주세요!");
         return;
     }
 
@@ -1714,7 +1712,6 @@ renderNews();
 const openResetModalBtn = document.getElementById('open-reset-modal');
 const resetModal = document.getElementById('reset-modal');
 const resetCloseBtn = document.getElementById('reset-close-btn');
-const resetUidInput = document.getElementById('reset-uid');
 const resetEmailInput = document.getElementById('reset-email');
 const resetSendCodeBtn = document.getElementById('reset-send-code-btn');
 const simulatedEmailToast = document.getElementById('simulated-email-toast');
@@ -1778,7 +1775,7 @@ function resetVerificationFlow() {
     verificationUid = '';
     verificationEmail = '';
     
-    if (resetStepDesc) resetStepDesc.innerText = "가입하신 아이디와 이메일을 입력해주세요.";
+    if (resetStepDesc) resetStepDesc.innerText = "가입하신 이메일을 입력해주세요.";
     if (resetStep1Inputs) resetStep1Inputs.classList.remove('hidden');
     if (resetStep2Verification) resetStep2Verification.classList.add('hidden');
     if (resetStep3Password) resetStep3Password.classList.add('hidden');
@@ -1787,7 +1784,6 @@ function resetVerificationFlow() {
         simulatedEmailToast.innerHTML = '';
     }
     
-    if (resetUidInput) resetUidInput.value = '';
     if (resetEmailInput) resetEmailInput.value = '';
     if (resetVerificationCodeInput) resetVerificationCodeInput.value = '';
     if (resetNewPasswordInput) resetNewPasswordInput.value = '';
@@ -1814,11 +1810,10 @@ if (resetCloseBtn) {
 
 if (resetSendCodeBtn) {
     resetSendCodeBtn.addEventListener('click', () => {
-        const uid = resetUidInput.value.trim();
         const email = resetEmailInput.value.trim();
 
-        if (!uid || !email) {
-            alert("아이디(UID)와 이메일 주소를 모두 입력해주세요!");
+        if (!email) {
+            alert("이메일 주소를 입력해주세요!");
             return;
         }
 
@@ -1828,30 +1823,29 @@ if (resetSendCodeBtn) {
         }
 
         const db = loadUsersDB();
-        if (!db[uid]) {
-            alert("해당 아이디(UID)로 가입된 계정이 없습니다.");
-            return;
+        // 옛날 계정(아이디 기반)과 이메일 기반 계정 모두 찾을 수 있도록 지원
+        let targetUid = null;
+        if (db[email]) {
+            targetUid = email;
+        } else {
+            // 이메일 주소로 검색
+            for (const key in db) {
+                if (db[key].email && db[key].email.toLowerCase() === email.toLowerCase()) {
+                    targetUid = key;
+                    break;
+                }
+            }
         }
 
-        // 구버전 계정 대응 및 이메일 매칭 체크
-        if (db[uid].email) {
-            if (db[uid].email.toLowerCase() !== email.toLowerCase()) {
-                alert("등록된 이메일 주소와 일치하지 않습니다.");
-                return;
-            }
-        } else {
-            // 이메일이 없는 기존 계정의 경우, 테스트 편의를 위해 신규 입력한 이메일로 연동 진행
-            if (confirm("이 계정에는 등록된 이메일이 없습니다. 현재 이메일을 복구용 이메일로 등록하고 인증 코드를 발송하시겠습니까?")) {
-                // 저장 처리는 본인 인증 완료 후 비밀번호가 성공적으로 변경될 때 일괄 수행
-            } else {
-                return;
-            }
+        if (!targetUid) {
+            alert("해당 이메일로 가입된 계정이 없습니다.");
+            return;
         }
 
         // 6자리 인증코드 생성
         const code = String(Math.floor(100000 + Math.random() * 900000));
         generatedVerificationCode = code;
-        verificationUid = uid;
+        verificationUid = targetUid;
         verificationEmail = email;
 
         // 실제 이메일 발송 또는 시뮬레이션 처리

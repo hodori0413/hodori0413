@@ -36,7 +36,7 @@
                 </div>
 
                 <div class="login-form">
-                    <input type="text" id="username-input" placeholder="아이디 또는 이메일을 입력해주세요" autocomplete="off">
+                    <input type="text" id="username-input" placeholder="이메일을 입력해주세요" autocomplete="off">
                     <input type="password" id="password-input" placeholder="비밀번호를 입력해주세요" autocomplete="off">
                     <div id="password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-top: -0.2rem; margin-bottom: 0.8rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
                     <button id="login-btn" class="btn-primary">시작하기</button>
@@ -58,12 +58,11 @@
                 </div>
                 <div class="login-form" style="margin-top: 0.5rem; gap: 0.8rem;">
                     <p id="reset-step-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; line-height: 1.4;">
-                        가입하신 아이디와 이메일을 입력해주세요.
+                        가입하신 이메일을 입력해주세요.
                     </p>
                     
-                    <!-- Step 1: UID & Email input -->
+                    <!-- Step 1: Email input -->
                     <div id="reset-step-1-inputs" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <input type="text" id="reset-uid" placeholder="가입했던 아이디(UID)" autocomplete="off" style="padding: 0.8rem;">
                         <input type="email" id="reset-email" placeholder="등록된 이메일 주소" autocomplete="off" style="padding: 0.8rem;">
                         <button id="reset-send-code-btn" class="btn-primary" style="margin-top: 0.2rem; padding: 0.9rem; font-size: 0.95rem;">인증 코드 발송</button>
                     </div>
@@ -106,8 +105,7 @@
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; line-height: 1.4;">
                         정보를 입력하여 가입을 진행해주세요.
                     </p>
-                    <input type="text" id="signup-username" placeholder="사용할 아이디/닉네임" autocomplete="off" style="padding: 0.8rem;">
-                    <input type="email" id="signup-email" placeholder="이메일 주소 (로그인 및 복구용)" autocomplete="off" style="padding: 0.8rem;">
+                    <input type="email" id="signup-email" placeholder="이메일 주소" autocomplete="off" style="padding: 0.8rem;">
                     <input type="password" id="signup-password" placeholder="비밀번호 (8자 이상, 소문자, 특수기호 포함)" autocomplete="off" style="padding: 0.8rem;">
                     <div id="signup-password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-top: -0.2rem; margin-bottom: 0.2rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
                     <button id="signup-complete-btn" class="btn-primary" style="margin-top: 0.5rem; padding: 1rem;">계정 생성 및 시작하기</button>
