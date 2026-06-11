@@ -1,3 +1,50 @@
+// EmailJS 개발자 설정 (이곳에 한 번만 입력해 두면 실제 이메일 발송이 활성화됩니다)
+const EMAILJS_DEV_CONFIG = {
+    serviceId: "YOUR_SERVICE_ID",   // EmailJS 서비스 ID
+    templateId: "YOUR_TEMPLATE_ID", // EmailJS 템플릿 ID
+    publicKey: "YOUR_PUBLIC_KEY"    // EmailJS 공개 키
+};
+
+// 최초 로드시 EmailJS 초기화
+if (EMAILJS_DEV_CONFIG.publicKey && 
+    EMAILJS_DEV_CONFIG.publicKey !== "YOUR_PUBLIC_KEY" && 
+    window.emailjs) {
+    window.emailjs.init({ publicKey: EMAILJS_DEV_CONFIG.publicKey });
+}
+
+// Supabase 설정 키 및 클라이언트 변수
+const SUPABASE_URL_KEY = 'SUPABASE_URL_LOCAL';
+const SUPABASE_ANON_KEY_KEY = 'SUPABASE_ANON_KEY_LOCAL';
+let supabaseClient = null;
+
+function initSupabase() {
+    let url = localStorage.getItem(SUPABASE_URL_KEY) || 'https://itcnwqcesnqczycujuho.supabase.co';
+    const key = localStorage.getItem(SUPABASE_ANON_KEY_KEY) || 'sb_publishable_GAixpDEKhirlOPHyjx2j9A_mHPP7q12';
+    if (url && key && window.supabase) {
+        // /rest/v1/ 이 포함되어 있다면 제거하여 Base URL만 추출
+        url = url.trim();
+        if (url.endsWith('/rest/v1/')) {
+            url = url.substring(0, url.length - 9);
+        } else if (url.endsWith('/rest/v1')) {
+            url = url.substring(0, url.length - 8);
+        }
+        try {
+            supabaseClient = window.supabase.createClient(url, key);
+            console.log("Supabase Client initialized successfully!");
+            return true;
+        } catch (e) {
+            console.error("Failed to initialize Supabase client:", e);
+            supabaseClient = null;
+            return false;
+        }
+    }
+    supabaseClient = null;
+    return false;
+}
+
+// 초기 로드 시 Supabase 클라이언트 초기화
+initSupabase();
+
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
 const mainApp = document.getElementById('main-app');
@@ -12,6 +59,19 @@ const currentPasswordInput = document.getElementById('current-password');
 const newPasswordInput = document.getElementById('new-password');
 const confirmNewPasswordInput = document.getElementById('confirm-new-password');
 const changePasswordBtn = document.getElementById('change-password-btn');
+
+// Supabase Settings DOM Elements
+const supabaseUrlInput = document.getElementById('supabase-url-input');
+const supabaseAnonKeyInput = document.getElementById('supabase-anon-key-input');
+const saveSupabaseBtn = document.getElementById('save-supabase-btn');
+const supabaseStatus = document.getElementById('supabase-status');
+
+// Signup DOM Elements
+const openSignupLink = document.getElementById('open-signup-link');
+const signupUsernameInput = document.getElementById('signup-username');
+const signupEmailInput = document.getElementById('signup-email');
+const signupPasswordInput = document.getElementById('signup-password');
+const signupPasswordErrorDiv = document.getElementById('signup-password-error');
 
 // Nav Items and Tabs
 const navItems = document.querySelectorAll('.nav-item');
@@ -47,7 +107,8 @@ let budgetData = {
         { id: 'shopping', name: '쇼핑', limit: 50000, spent: 0 },
         { id: 'others', name: '기타', limit: 50000, spent: 0 }
     ],
-    resetDate: '1'
+    resetDate: '1',
+    expenses: []
 };
 const userPoints = document.getElementById('user-points');
 const pointProgressBar = document.getElementById('point-progress-bar');
@@ -64,14 +125,45 @@ const USER_DB_KEY = 'youth_app_users_db';
 function loadUsersDB() {
     return JSON.parse(localStorage.getItem(USER_DB_KEY)) || {};
 }
-function saveUserProgress() {
+async function saveUserProgress() {
     if (!currentUser) return;
+    
+    // 로컬 DB 업데이트 (폴백 및 오프라인 상태 대비)
     const db = loadUsersDB();
-    if (db[currentUser]) {
-        db[currentUser].totalPoints = totalPoints;
-        db[currentUser].progressPoints = progressPoints;
-        db[currentUser].currentLevel = currentLevel;
-        localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+    if (!db[currentUser]) {
+        db[currentUser] = {};
+    }
+    db[currentUser].totalPoints = totalPoints;
+    db[currentUser].progressPoints = progressPoints;
+    db[currentUser].currentLevel = currentLevel;
+    db[currentUser].budgetData = budgetData; // budgetData도 함께 저장
+    localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+
+    // Supabase 클라우드 DB 동기화
+    if (supabaseClient) {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                const { error } = await supabaseClient
+                    .from('user_profiles')
+                    .upsert({
+                        id: session.user.id,
+                        username: currentUser,
+                        total_points: totalPoints,
+                        progress_points: progressPoints,
+                        current_level: currentLevel,
+                        budget_data: budgetData,
+                        updated_at: new Date().toISOString()
+                    });
+                if (error) {
+                    console.error("Failed to sync progress to Supabase user_profiles:", error);
+                } else {
+                    console.log("Successfully synced progress to Supabase cloud!");
+                }
+            }
+        } catch (e) {
+            console.error("Failed to execute sync to Supabase:", e);
+        }
     }
 }
 
@@ -137,59 +229,38 @@ if (passwordInput) {
     });
 }
 
-loginBtn.addEventListener('click', () => {
-    if (passwordErrorDiv) passwordErrorDiv.style.display = 'none';
-    
-    const name = usernameInput.value.trim();
-    const pwd = passwordInput.value.trim();
-
-    if (name.length === 0 || pwd.length === 0) {
-        alert("아이디(UID)와 비밀번호를 모두 입력해주세요!");
-        return;
-    }
-
-    const db = loadUsersDB();
-
-    if (db[name]) {
-        // 기존 가입된 유저
-        if (db[name].password !== pwd) {
-            alert("비밀번호가 일치하지 않습니다.");
-            return;
-        }
-        // 데이터 불러오기
-        totalPoints = db[name].totalPoints || 0;
-        progressPoints = db[name].progressPoints || 0;
-        currentLevel = db[name].currentLevel || 1;
-        alert(`환영합니다, ${name}님! 이전 진행 상황을 불러왔습니다.`);
-    } else {
-        // 신규 유저 생성
-        if (!validatePassword(pwd)) {
-            if (passwordErrorDiv) passwordErrorDiv.style.display = 'block';
-            return;
-        }
-
-        if (confirm(`'${name}' 계정이 없습니다. 이 비밀번호로 새로 생성하시겠습니까?`)) {
-            db[name] = {
-                password: pwd,
-                totalPoints: 0,
-                progressPoints: 0,
-                currentLevel: 1
-            };
-            localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
-            
-            totalPoints = 0;
-            progressPoints = 0;
-            currentLevel = 1;
-            alert(`계정이 성공적으로 생성되었습니다!`);
-        } else {
-            return;
-        }
-    }
-
+function loginUser(name, dbRecord) {
     currentUser = name;
 
     // Set UI
     userNameDisplay.innerText = name;
+    totalPoints = dbRecord.totalPoints || 0;
+    progressPoints = dbRecord.progressPoints || 0;
+    currentLevel = dbRecord.currentLevel || 1;
+    
+    // 예산 데이터 불러오기
+    if (dbRecord.budgetData) {
+        budgetData = dbRecord.budgetData;
+        if (!budgetData.expenses) {
+            budgetData.expenses = [];
+        }
+    } else {
+        budgetData = {
+            totalBudget: 500000,
+            totalSpent: 0,
+            categories: [
+                { id: 'housing', name: '주거비', limit: 200000, spent: 0 },
+                { id: 'food', name: '식비/카페', limit: 150000, spent: 0 },
+                { id: 'transport', name: '교통비', limit: 50000, spent: 0 },
+                { id: 'shopping', name: '쇼핑', limit: 50000, spent: 0 },
+                { id: 'others', name: '기타', limit: 50000, spent: 0 }
+            ],
+            resetDate: '1',
+            expenses: []
+        };
+    }
+    renderBudgetOverview();
+
     if (userPoints) userPoints.innerText = totalPoints.toLocaleString();
     const utEl = document.getElementById('user-tier');
     if (utEl) utEl.innerText = `씨앗 등급 (Lv.${currentLevel})`;
@@ -203,6 +274,288 @@ loginBtn.addEventListener('click', () => {
         mainApp.classList.remove('hidden');
         mainApp.classList.add('active');
     }, 300);
+}
+
+// 회원가입 모달 엘리먼트 및 상태
+const signupModal = document.getElementById('signup-modal');
+const signupCloseBtn = document.getElementById('signup-close-btn');
+const signupCompleteBtn = document.getElementById('signup-complete-btn');
+
+function openSignupModal(name = '', pwd = '') {
+    if (signupUsernameInput) signupUsernameInput.value = name;
+    if (signupEmailInput) signupEmailInput.value = '';
+    if (signupPasswordInput) signupPasswordInput.value = pwd;
+    if (signupPasswordErrorDiv) signupPasswordErrorDiv.style.display = 'none';
+    if (signupModal) signupModal.classList.remove('hidden');
+}
+
+if (openSignupLink) {
+    openSignupLink.addEventListener('click', () => {
+        openSignupModal(usernameInput.value.trim(), passwordInput.value.trim());
+    });
+}
+
+if (signupCloseBtn) {
+    signupCloseBtn.addEventListener('click', () => {
+        if (signupModal) signupModal.classList.add('hidden');
+    });
+}
+
+if (signupCompleteBtn) {
+    signupCompleteBtn.addEventListener('click', async () => {
+        const username = signupUsernameInput.value.trim();
+        const email = signupEmailInput.value.trim();
+        const pwd = signupPasswordInput.value.trim();
+
+        if (!username || !email || !pwd) {
+            alert("모든 가입 정보를 올바르게 입력해주세요!");
+            return;
+        }
+
+        // 간단한 이메일 형식 체크
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert("올바른 이메일 주소 형식이 아닙니다.");
+            return;
+        }
+
+        // 비밀번호 강도 검사
+        if (signupPasswordErrorDiv) signupPasswordErrorDiv.style.display = 'none';
+        if (!validatePassword(pwd)) {
+            if (signupPasswordErrorDiv) signupPasswordErrorDiv.style.display = 'block';
+            return;
+        }
+
+        // Supabase 모드 회원가입
+        if (supabaseClient) {
+            signupCompleteBtn.disabled = true;
+            signupCompleteBtn.innerText = "계정 생성 중...";
+            
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: pwd,
+                    options: {
+                        data: {
+                            username: username
+                        }
+                    }
+                });
+
+                if (error) {
+                    alert("Supabase 회원가입 에러: " + error.message);
+                    return;
+                }
+
+                // user_profiles 테이블 직접 초기화 시도 (트리거 실패나 SQL 미설정 대비)
+                if (data.user) {
+                    try {
+                        const defaultBudget = {
+                            totalBudget: 500000,
+                            totalSpent: 0,
+                            categories: [
+                                { id: 'housing', name: '주거비', limit: 200000, spent: 0 },
+                                { id: 'food', name: '식비/카페', limit: 150000, spent: 0 },
+                                { id: 'transport', name: '교통비', limit: 50000, spent: 0 },
+                                { id: 'shopping', name: '쇼핑', limit: 50000, spent: 0 },
+                                { id: 'others', name: '기타', limit: 50000, spent: 0 }
+                            ],
+                            resetDate: '1',
+                            expenses: []
+                        };
+                        await supabaseClient.from('user_profiles').upsert({
+                            id: data.user.id,
+                            username: username,
+                            total_points: 0,
+                            progress_points: 0,
+                            current_level: 1,
+                            budget_data: defaultBudget,
+                            updated_at: new Date().toISOString()
+                        });
+                    } catch (profileErr) {
+                        console.warn("Direct profile creation failed. Relying on fallback.", profileErr);
+                    }
+                }
+
+                alert('회원가입이 완료되었습니다! 이제 가입하신 정보로 자동 로그인합니다.');
+                if (signupModal) signupModal.classList.add('hidden');
+                
+                // 로그인 화면 입력창 초기화
+                usernameInput.value = '';
+                passwordInput.value = '';
+
+                // 로컬 정보 저장
+                const db = loadUsersDB();
+                db[username] = {
+                    password: pwd,
+                    email: email,
+                    totalPoints: 0,
+                    progressPoints: 0,
+                    currentLevel: 1,
+                    budgetData: null
+                };
+                localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+
+                const dbRecord = {
+                    totalPoints: 0,
+                    progressPoints: 0,
+                    currentLevel: 1,
+                    budgetData: null,
+                    email: email
+                };
+                loginUser(username, dbRecord);
+            } catch (err) {
+                console.error(err);
+                alert("회원가입 중 알 수 없는 에러가 발생했습니다: " + err.message);
+            } finally {
+                signupCompleteBtn.disabled = false;
+                signupCompleteBtn.innerText = "계정 생성 및 시작하기";
+            }
+        } else {
+            // 로컬 모드 회원가입
+            const db = loadUsersDB();
+            if (db[username]) {
+                alert("이미 존재하는 아이디입니다.");
+                return;
+            }
+            db[username] = {
+                password: pwd,
+                email: email,
+                totalPoints: 0,
+                progressPoints: 0,
+                currentLevel: 1,
+                budgetData: {
+                    totalBudget: 500000,
+                    totalSpent: 0,
+                    categories: [
+                        { id: 'housing', name: '주거비', limit: 200000, spent: 0 },
+                        { id: 'food', name: '식비/카페', limit: 150000, spent: 0 },
+                        { id: 'transport', name: '교통비', limit: 50000, spent: 0 },
+                        { id: 'shopping', name: '쇼핑', limit: 50000, spent: 0 },
+                        { id: 'others', name: '기타', limit: 50000, spent: 0 }
+                    ],
+                    resetDate: '1',
+                    expenses: []
+                }
+            };
+            localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+
+            alert('계정이 성공적으로 생성되었습니다! (로컬 모드)');
+            if (signupModal) signupModal.classList.add('hidden');
+
+            loginUser(username, db[username]);
+        }
+    });
+}
+
+loginBtn.addEventListener('click', async () => {
+    if (passwordErrorDiv) passwordErrorDiv.style.display = 'none';
+    
+    const name = usernameInput.value.trim();
+    const pwd = passwordInput.value.trim();
+
+    if (name.length === 0 || pwd.length === 0) {
+        alert("아이디 또는 이메일과 비밀번호를 모두 입력해주세요!");
+        return;
+    }
+
+    if (supabaseClient) {
+        loginBtn.disabled = true;
+        loginBtn.innerText = "로그인 중...";
+        
+        try {
+            let email = name;
+            if (!name.includes('@')) {
+                const db = loadUsersDB();
+                if (db[name] && db[name].email) {
+                    email = db[name].email;
+                } else {
+                    console.log("No local username-to-email mapping found.");
+                }
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: pwd
+            });
+
+            if (error) {
+                alert("로그인 실패: " + error.message);
+                loginBtn.disabled = false;
+                loginBtn.innerText = "시작하기";
+                return;
+            }
+
+            let dbRecord = {
+                totalPoints: 0,
+                progressPoints: 0,
+                currentLevel: 1,
+                budgetData: null,
+                email: email
+            };
+
+            let username = name;
+
+            try {
+                const { data: profile, error: profileErr } = await supabaseClient
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (profileErr) {
+                    console.warn("Could not load user profile from Supabase table.", profileErr);
+                    const db = loadUsersDB();
+                    const backup = db[name] || db[email] || {};
+                    dbRecord.totalPoints = backup.totalPoints || 0;
+                    dbRecord.progressPoints = backup.progressPoints || 0;
+                    dbRecord.currentLevel = backup.currentLevel || 1;
+                    dbRecord.budgetData = backup.budgetData || null;
+                    username = backup.username || data.user.user_metadata?.username || name;
+                } else if (profile) {
+                    dbRecord.totalPoints = profile.total_points || 0;
+                    dbRecord.progressPoints = profile.progress_points || 0;
+                    dbRecord.currentLevel = profile.current_level || 1;
+                    dbRecord.budgetData = profile.budget_data || null;
+                    username = profile.username || data.user.user_metadata?.username || name;
+                }
+            } catch (profileErr) {
+                console.error("Database fetch error, using local fallback:", profileErr);
+                const db = loadUsersDB();
+                const backup = db[name] || db[email] || {};
+                dbRecord.totalPoints = backup.totalPoints || 0;
+                dbRecord.progressPoints = backup.progressPoints || 0;
+                dbRecord.currentLevel = backup.currentLevel || 1;
+                dbRecord.budgetData = backup.budgetData || null;
+            }
+
+            alert(`환영합니다, ${username}님! 클라우드 세션을 연결했습니다.`);
+            loginUser(username, dbRecord);
+
+        } catch (err) {
+            console.error("Auth error:", err);
+            alert("로그인 중 서버 연결 에러가 발생했습니다.");
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.innerText = "시작하기";
+        }
+    } else {
+        const db = loadUsersDB();
+
+        if (db[name]) {
+            if (db[name].password !== pwd) {
+                alert("비밀번호가 일치하지 않습니다.");
+                return;
+            }
+            alert(`환영합니다, ${name}님! (로컬 모드)`);
+            loginUser(name, db[name]);
+        } else {
+            if (!validatePassword(pwd)) {
+                if (passwordErrorDiv) passwordErrorDiv.style.display = 'block';
+                return;
+            }
+            openSignupModal(name, pwd);
+        }
+    }
 });
 
 // Optionally allow 'Enter' key to login
@@ -281,12 +634,44 @@ function renderBudgetOverview() {
         dashBudgetProgress.style.background = `conic-gradient(var(--primary) ${percent * 3.6}deg, #e2e8f0 0deg)`;
     }
     
-    // This month graph
-    if (thisMonthBar) {
-        thisMonthBar.style.height = `${Math.min(100, Math.max(10, percent))}%`;
-        if (percent > 90) thisMonthBar.style.background = '#ef4444';
-        else if (percent > 70) thisMonthBar.style.background = '#f59e0b';
-        else thisMonthBar.style.background = 'var(--primary)';
+    // This month comparison updates
+    const thisMonthAmount = document.getElementById('this-month-amount');
+    const thisMonthProgressBar = document.getElementById('this-month-progress-bar');
+    const budgetComparisonBadge = document.getElementById('budget-comparison-badge');
+
+    const lastMonthSpent = 420000;
+
+    if (thisMonthAmount) {
+        thisMonthAmount.innerText = `${totalSpent.toLocaleString()}원`;
+    }
+
+    if (thisMonthProgressBar) {
+        const comparePercent = Math.min(100, Math.round((totalSpent / lastMonthSpent) * 100));
+        thisMonthProgressBar.style.width = comparePercent + '%';
+        
+        if (totalSpent > lastMonthSpent) {
+            thisMonthProgressBar.style.background = 'linear-gradient(90deg, #f87171, #ef4444)'; // Red gradient if exceeding last month
+        } else {
+            thisMonthProgressBar.style.background = 'linear-gradient(90deg, var(--primary-light), var(--primary))'; // Default sky blue
+        }
+    }
+
+    if (budgetComparisonBadge) {
+        if (totalSpent < lastMonthSpent) {
+            const diff = lastMonthSpent - totalSpent;
+            budgetComparisonBadge.innerText = `지난달 대비 ${diff.toLocaleString()}원 절약 중! 🌿`;
+            budgetComparisonBadge.style.background = '#dcfce7';
+            budgetComparisonBadge.style.color = '#15803d';
+        } else if (totalSpent === lastMonthSpent) {
+            budgetComparisonBadge.innerText = `지난달과 소비액 동일`;
+            budgetComparisonBadge.style.background = '#e2e8f0';
+            budgetComparisonBadge.style.color = '#475569';
+        } else {
+            const diff = totalSpent - lastMonthSpent;
+            budgetComparisonBadge.innerText = `지난달 대비 ${diff.toLocaleString()}원 초과 지출! ⚠️`;
+            budgetComparisonBadge.style.background = '#fee2e2';
+            budgetComparisonBadge.style.color = '#991b1b';
+        }
     }
 
     // Render Categories
@@ -326,6 +711,61 @@ function renderBudgetOverview() {
             aiBudgetWarning.innerHTML = `<i class="fa-solid fa-lightbulb"></i> 전체 예산의 70%가 사용됐어요. 이번 주말에는 외식 대신 집밥 어떠세요?`;
         } else {
             aiBudgetWarning.classList.add('hidden');
+        }
+    }
+
+    // Render Expenses List
+    const expenseHistoryList = document.getElementById('expense-history-list');
+    const expenseCountSpan = document.getElementById('expense-count');
+    const emptyHistoryText = document.getElementById('empty-history-text');
+
+    if (expenseHistoryList) {
+        expenseHistoryList.innerHTML = '';
+        const expenses = budgetData.expenses || [];
+        
+        if (expenseCountSpan) {
+            expenseCountSpan.innerText = `${expenses.length}건`;
+        }
+
+        if (expenses.length === 0) {
+            if (emptyHistoryText) {
+                expenseHistoryList.appendChild(emptyHistoryText);
+                emptyHistoryText.style.display = 'block';
+            } else {
+                expenseHistoryList.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;" id="empty-history-text">등록된 지출 내역이 없습니다.</p>`;
+            }
+        } else {
+            const sortedExpenses = [...expenses].reverse();
+            
+            sortedExpenses.forEach(exp => {
+                const item = document.createElement('div');
+                item.style.display = 'flex';
+                item.style.justify = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.background = '#f8fafc';
+                item.style.padding = '0.8rem 1rem';
+                item.style.borderRadius = '12px';
+                item.style.border = '1px solid var(--border)';
+                
+                let badgeColor = '#e0f2fe';
+                let badgeText = '#0369a1';
+                if (exp.category === 'housing') { badgeColor = '#ffedd5'; badgeText = '#c2410c'; }
+                else if (exp.category === 'food') { badgeColor = '#fef9c3'; badgeText = '#854d0e'; }
+                else if (exp.category === 'transport') { badgeColor = '#dcfce7'; badgeText = '#15803d'; }
+                else if (exp.category === 'shopping') { badgeColor = '#f3e8ff'; badgeText = '#7e22ce'; }
+                
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.75rem; font-weight: bold; background: ${badgeColor}; color: ${badgeText}; padding: 0.2rem 0.5rem; border-radius: 6px;">${exp.categoryName}</span>
+                        <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-main); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${exp.title}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary);">${Number(exp.amount).toLocaleString()}원</span>
+                        <button onclick="deleteExpense('${exp.id}')" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 2px 5px;"><i class="fa-solid fa-trash-can" style="font-size: 0.85rem;"></i></button>
+                    </div>
+                `;
+                expenseHistoryList.appendChild(item);
+            });
         }
     }
 }
@@ -411,6 +851,92 @@ if (receiptFileUpload) {
     });
 }
 
+// --- Manual Expense Logging Logic ---
+const expenseCategorySelect = document.getElementById('expense-category');
+const expenseTitleInput = document.getElementById('expense-title');
+const expenseAmountInput = document.getElementById('expense-amount');
+const btnAddExpense = document.getElementById('btn-add-expense');
+
+if (btnAddExpense) {
+    btnAddExpense.addEventListener('click', () => {
+        if (!currentUser) {
+            alert("로그인 후 지출 기입이 가능합니다.");
+            return;
+        }
+
+        const categoryId = expenseCategorySelect.value;
+        const title = expenseTitleInput.value.trim();
+        const amount = parseInt(expenseAmountInput.value.trim());
+
+        if (!title || isNaN(amount) || amount <= 0) {
+            alert("지출 내용과 올바른 금액을 기입해주세요!");
+            return;
+        }
+
+        const category = budgetData.categories.find(c => c.id === categoryId);
+        if (!category) {
+            alert("올바르지 않은 카테고리입니다.");
+            return;
+        }
+
+        // Add to category spent
+        category.spent += amount;
+
+        // Add to expenses history
+        if (!budgetData.expenses) {
+            budgetData.expenses = [];
+        }
+
+        const newExpense = {
+            id: 'exp-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            category: categoryId,
+            categoryName: category.name,
+            title: title,
+            amount: amount,
+            date: new Date().toISOString()
+        };
+
+        budgetData.expenses.push(newExpense);
+
+        // Reset input fields
+        expenseTitleInput.value = '';
+        expenseAmountInput.value = '';
+
+        // Save progress, update points, and render
+        saveUserProgress();
+        renderBudgetOverview();
+        
+        // Gamification bonus points
+        addPoints(30);
+        
+        alert(`지출 내역이 정상 등록되었습니다! 짠테크 기입 보너스로 30P를 획득하셨습니다. 🎉`);
+    });
+}
+
+// Global function for deleting expense
+window.deleteExpense = function(id) {
+    if (!budgetData.expenses) return;
+    
+    // Find index
+    const index = budgetData.expenses.findIndex(exp => exp.id === id);
+    if (index === -1) return;
+    
+    const exp = budgetData.expenses[index];
+    
+    // Deduct from category spent
+    const category = budgetData.categories.find(c => c.id === exp.category);
+    if (category) {
+        category.spent = Math.max(0, category.spent - exp.amount);
+    }
+    
+    // Remove from array
+    budgetData.expenses.splice(index, 1);
+    
+    // Save and re-render
+    saveUserProgress();
+    renderBudgetOverview();
+};
+
 // 초기화 시 렌더링
 renderBudgetOverview();
 
@@ -444,6 +970,21 @@ logoutBtn.addEventListener('click', () => {
         totalPoints = 0;
         progressPoints = 0;
         currentLevel = 1;
+        budgetData = {
+            totalBudget: 500000,
+            totalSpent: 0,
+            categories: [
+                { id: 'housing', name: '주거비', limit: 200000, spent: 0 },
+                { id: 'food', name: '식비/카페', limit: 150000, spent: 0 },
+                { id: 'transport', name: '교통비', limit: 50000, spent: 0 },
+                { id: 'shopping', name: '쇼핑', limit: 50000, spent: 0 },
+                { id: 'others', name: '기타', limit: 50000, spent: 0 }
+            ],
+            resetDate: '1',
+            expenses: []
+        };
+        renderBudgetOverview();
+
         if (userPoints) userPoints.innerText = totalPoints.toLocaleString();
         const utEl = document.getElementById('user-tier');
         if (utEl) utEl.innerText = `씨앗 등급 (Lv.1)`;
@@ -491,6 +1032,45 @@ if (saveApiKeyBtn && geminiApiKeyInput) {
         }
     });
 }
+
+// Supabase API Key & URL Management
+if (supabaseUrlInput && supabaseAnonKeyInput) {
+    supabaseUrlInput.value = localStorage.getItem(SUPABASE_URL_KEY) || "https://itcnwqcesnqczycujuho.supabase.co";
+    supabaseAnonKeyInput.value = localStorage.getItem(SUPABASE_ANON_KEY_KEY) || "sb_publishable_GAixpDEKhirlOPHyjx2j9A_mHPP7q12";
+}
+
+if (saveSupabaseBtn && supabaseUrlInput && supabaseAnonKeyInput) {
+    saveSupabaseBtn.addEventListener('click', () => {
+        const url = supabaseUrlInput.value.trim();
+        const key = supabaseAnonKeyInput.value.trim();
+
+        if (url && key) {
+            localStorage.setItem(SUPABASE_URL_KEY, url);
+            localStorage.setItem(SUPABASE_ANON_KEY_KEY, key);
+            
+            const initSuccess = initSupabase();
+            if (initSuccess) {
+                if (supabaseStatus) {
+                    supabaseStatus.style.display = 'block';
+                    setTimeout(() => {
+                        supabaseStatus.style.display = 'none';
+                    }, 3000);
+                }
+                alert("Supabase 연동 정보가 브라우저에 안전하게 저장되고 초기화되었습니다. 이제 클라우드 인증을 사용합니다! 🔒");
+            } else {
+                alert("Supabase SDK 초기화 중 실패했습니다. URL 또는 Anon Key 값을 다시 확인해 주세요.");
+            }
+        } else {
+            localStorage.removeItem(SUPABASE_URL_KEY);
+            localStorage.removeItem(SUPABASE_ANON_KEY_KEY);
+            supabaseClient = null;
+            alert("Supabase 연동이 해제되었습니다. 이제 로컬 저장소 모드(LocalStorage)로 작동합니다.");
+        }
+    });
+}
+
+
+
 
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
@@ -871,18 +1451,44 @@ window.addEventListener('click', (e) => {
     if (e.target === calendarModal) {
         calendarModal.classList.add('hidden');
     }
+    if (e.target === signupModal) {
+        if (signupModal) signupModal.classList.add('hidden');
+    }
+    if (e.target === resetModal) {
+        closeResetModal();
+    }
 });
 
 // --- Settings Logic ---
 // (도움말 및 문의하기 기능은 HTML 내 인라인 onclick 알림으로 처리됨)
 const resetAccountBtn = document.getElementById('reset-account-btn');
 if (resetAccountBtn) {
-    resetAccountBtn.addEventListener('click', () => {
+    resetAccountBtn.addEventListener('click', async () => {
         if (!currentUser) return;
         
         const isConfirm = confirm("⚠️ 경고! 현재 접속하신 계정의 모든 짠테크 포인트와 레벨 기록이 0으로 초기화됩니다.\n\n정말로 모든 기록을 지우시겠습니까? (이 작업은 되돌릴 수 없습니다!)");
         
         if (isConfirm) {
+            // Supabase 연동 시 클라우드 프로필 삭제
+            if (supabaseClient) {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session && session.user) {
+                        const { error } = await supabaseClient
+                            .from('user_profiles')
+                            .delete()
+                            .eq('id', session.user.id);
+                        if (error) {
+                            console.error("Failed to delete user profile in Supabase:", error);
+                        } else {
+                            console.log("Successfully deleted user profile from Supabase cloud.");
+                        }
+                    }
+                } catch (e) {
+                    console.error("Supabase profile delete error:", e);
+                }
+            }
+
             // DB에서 해당 UID 자체를 완전히 삭제 (비밀번호, 포인트 등 모든 기록 제거)
             const db = loadUsersDB();
             if (db[currentUser]) {
@@ -1104,16 +1710,26 @@ window.filterNews = function (city) {
 // 초기 뉴스 렌더링
 renderNews();
 
-// --- Reset Password / CAPTCHA Logic ---
+// --- Reset Password / Email Verification Logic ---
 const openResetModalBtn = document.getElementById('open-reset-modal');
 const resetModal = document.getElementById('reset-modal');
 const resetCloseBtn = document.getElementById('reset-close-btn');
 const resetUidInput = document.getElementById('reset-uid');
-const captchaQuestionDiv = document.getElementById('captcha-question');
-const resetCaptchaInput = document.getElementById('reset-captcha');
+const resetEmailInput = document.getElementById('reset-email');
+const resetSendCodeBtn = document.getElementById('reset-send-code-btn');
+const simulatedEmailToast = document.getElementById('simulated-email-toast');
+
+const resetStep1Inputs = document.getElementById('reset-step-1-inputs');
+const resetStep2Verification = document.getElementById('reset-step-2-verification');
+const resetStep3Password = document.getElementById('reset-step-3-password');
+const resetVerificationCodeInput = document.getElementById('reset-verification-code');
+const resetTimerSpan = document.getElementById('reset-timer');
+const resetVerifyCodeBtn = document.getElementById('reset-verify-code-btn');
+
 const resetNewPasswordInput = document.getElementById('reset-new-password');
 const resetPasswordErrorDiv = document.getElementById('reset-password-error');
-const resetBtn = document.getElementById('reset-btn');
+const resetChangePwdBtn = document.getElementById('reset-change-pwd-btn');
+const resetStepDesc = document.getElementById('reset-step-desc');
 
 if (resetNewPasswordInput) {
     resetNewPasswordInput.addEventListener('input', () => {
@@ -1121,45 +1737,228 @@ if (resetNewPasswordInput) {
     });
 }
 
-let currentCaptchaAnswer = 0;
+let verificationTimer = null;
+let verificationTimeLeft = 180; // 3 minutes
+let generatedVerificationCode = '';
+let verificationUid = '';
+let verificationEmail = '';
 
-function generateCaptcha() {
-    const num1 = Math.floor(Math.random() * 9) + 1; // 1~9
-    const num2 = Math.floor(Math.random() * 9) + 1; // 1~9
-    currentCaptchaAnswer = num1 + num2;
-    captchaQuestionDiv.innerText = `${num1} + ${num2} = ?`;
-    resetCaptchaInput.value = '';
-    resetUidInput.value = '';
-    resetNewPasswordInput.value = '';
+function startVerificationTimer() {
+    clearInterval(verificationTimer);
+    verificationTimeLeft = 180;
+    updateTimerDisplay();
+    verificationTimer = setInterval(() => {
+        verificationTimeLeft--;
+        updateTimerDisplay();
+        if (verificationTimeLeft <= 0) {
+            clearInterval(verificationTimer);
+            alert("인증 시간이 초과되었습니다. 인증 코드를 다시 발송해 주세요.");
+            resetVerificationFlow();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(verificationTimeLeft / 60);
+    const seconds = verificationTimeLeft % 60;
+    const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    if (resetTimerSpan) {
+        resetTimerSpan.innerText = formatted;
+        if (verificationTimeLeft <= 30) {
+            resetTimerSpan.classList.add('timer-pulse');
+        } else {
+            resetTimerSpan.classList.remove('timer-pulse');
+        }
+    }
+}
+
+function resetVerificationFlow() {
+    clearInterval(verificationTimer);
+    generatedVerificationCode = '';
+    verificationUid = '';
+    verificationEmail = '';
+    
+    if (resetStepDesc) resetStepDesc.innerText = "가입하신 아이디와 이메일을 입력해주세요.";
+    if (resetStep1Inputs) resetStep1Inputs.classList.remove('hidden');
+    if (resetStep2Verification) resetStep2Verification.classList.add('hidden');
+    if (resetStep3Password) resetStep3Password.classList.add('hidden');
+    if (simulatedEmailToast) {
+        simulatedEmailToast.classList.add('hidden');
+        simulatedEmailToast.innerHTML = '';
+    }
+    
+    if (resetUidInput) resetUidInput.value = '';
+    if (resetEmailInput) resetEmailInput.value = '';
+    if (resetVerificationCodeInput) resetVerificationCodeInput.value = '';
+    if (resetNewPasswordInput) resetNewPasswordInput.value = '';
+    if (resetPasswordErrorDiv) resetPasswordErrorDiv.style.display = 'none';
+}
+
+function closeResetModal() {
+    resetVerificationFlow();
+    if (resetModal) resetModal.classList.add('hidden');
 }
 
 if (openResetModalBtn) {
     openResetModalBtn.addEventListener('click', () => {
-        generateCaptcha();
+        resetVerificationFlow();
         resetModal.classList.remove('hidden');
     });
 }
 
 if (resetCloseBtn) {
     resetCloseBtn.addEventListener('click', () => {
-        resetModal.classList.add('hidden');
+        closeResetModal();
     });
 }
 
-if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
+if (resetSendCodeBtn) {
+    resetSendCodeBtn.addEventListener('click', () => {
         const uid = resetUidInput.value.trim();
-        const captchaAns = parseInt(resetCaptchaInput.value.trim());
-        const newPwd = resetNewPasswordInput.value.trim();
+        const email = resetEmailInput.value.trim();
 
-        if (!uid || isNaN(captchaAns) || !newPwd) {
-            alert("모든 빈칸을 채워주세요!");
+        if (!uid || !email) {
+            alert("아이디(UID)와 이메일 주소를 모두 입력해주세요!");
             return;
         }
 
-        if (captchaAns !== currentCaptchaAnswer) {
-            alert("자동가입 방지(수학 문제) 정답이 틀렸습니다. 다시 시도해주세요.");
-            generateCaptcha();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert("올바른 이메일 주소 형식이 아닙니다.");
+            return;
+        }
+
+        const db = loadUsersDB();
+        if (!db[uid]) {
+            alert("해당 아이디(UID)로 가입된 계정이 없습니다.");
+            return;
+        }
+
+        // 구버전 계정 대응 및 이메일 매칭 체크
+        if (db[uid].email) {
+            if (db[uid].email.toLowerCase() !== email.toLowerCase()) {
+                alert("등록된 이메일 주소와 일치하지 않습니다.");
+                return;
+            }
+        } else {
+            // 이메일이 없는 기존 계정의 경우, 테스트 편의를 위해 신규 입력한 이메일로 연동 진행
+            if (confirm("이 계정에는 등록된 이메일이 없습니다. 현재 이메일을 복구용 이메일로 등록하고 인증 코드를 발송하시겠습니까?")) {
+                // 저장 처리는 본인 인증 완료 후 비밀번호가 성공적으로 변경될 때 일괄 수행
+            } else {
+                return;
+            }
+        }
+
+        // 6자리 인증코드 생성
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        generatedVerificationCode = code;
+        verificationUid = uid;
+        verificationEmail = email;
+
+        // 실제 이메일 발송 또는 시뮬레이션 처리
+        sendVerificationEmail(email, code)
+            .then((isRealSent) => {
+                if (isRealSent) {
+                    if (simulatedEmailToast) {
+                        simulatedEmailToast.classList.remove('hidden');
+                        simulatedEmailToast.innerHTML = `
+                            <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; color: var(--success);">
+                                <i class="fa-solid fa-paper-plane"></i> 실제 이메일 발송 완료
+                            </div>
+                            <div style="font-size: 0.85rem; line-height: 1.4; color: var(--text-main);">
+                                수신 이메일: <strong>${email}</strong><br>
+                                입력하신 이메일로 실제 인증 코드가 포함된 메일을 발송했습니다.<br>메일함을 확인해 주세요! (스팸 메일함도 함께 확인 바랍니다.)
+                            </div>
+                        `;
+                    }
+                } else {
+                    if (simulatedEmailToast) {
+                        simulatedEmailToast.classList.remove('hidden');
+                        simulatedEmailToast.innerHTML = `
+                            <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-envelope" style="color: var(--primary);"></i> [시뮬레이션] 가상 이메일 전송 완료
+                            </div>
+                            <div style="font-size: 0.85rem; line-height: 1.4; color: var(--text-main);">
+                                수신자: <strong>${email}</strong><br>
+                                내용: [청년지갑] 본인 확인을 위한 인증 번호입니다.<br>
+                                <div class="verify-code-badge">${code}</div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">※ 실제 서비스 시에는 메일로 발송되나, MVP 데모 테스트용으로 화면에 표시됩니다.</span>
+                            </div>
+                        `;
+                    }
+                }
+
+                if (resetStepDesc) resetStepDesc.innerText = "이메일로 전송된 6자리 인증 코드를 입력해주세요.";
+                if (resetStep1Inputs) resetStep1Inputs.classList.add('hidden');
+                if (resetStep2Verification) resetStep2Verification.classList.remove('hidden');
+
+                startVerificationTimer();
+            })
+            .catch((err) => {
+                console.error("이메일 발송 에러:", err);
+                alert("실제 이메일 발송 중 오류가 발생했습니다. 개발자 설정값을 확인하거나 잠시 후 시도해주세요. (오류 내용: " + err.message + ")");
+            });
+    });
+}
+
+function sendVerificationEmail(email, code) {
+    const sId = EMAILJS_DEV_CONFIG.serviceId;
+    const tId = EMAILJS_DEV_CONFIG.templateId;
+    const pKey = EMAILJS_DEV_CONFIG.publicKey;
+
+    if (!sId || sId === "YOUR_SERVICE_ID" || 
+        !tId || tId === "YOUR_TEMPLATE_ID" || 
+        !pKey || pKey === "YOUR_PUBLIC_KEY") {
+        return Promise.resolve(false); 
+    }
+    
+    if (!window.emailjs) {
+        return Promise.reject(new Error("EmailJS SDK가 로드되지 않았습니다."));
+    }
+
+    const templateParams = {
+        to_email: email,
+        email_to: email,
+        code: code,
+        verification_code: code,
+        message: `인증번호는 [${code}] 입니다.`
+    };
+
+    return window.emailjs.send(sId, tId, templateParams)
+        .then((response) => {
+            console.log('EmailJS Success:', response.status, response.text);
+            return true;
+        });
+}
+
+if (resetVerifyCodeBtn) {
+    resetVerifyCodeBtn.addEventListener('click', () => {
+        const inputCode = resetVerificationCodeInput.value.trim();
+
+        if (!inputCode) {
+            alert("인증 코드를 입력해주세요!");
+            return;
+        }
+
+        if (inputCode !== generatedVerificationCode) {
+            alert("인증 코드가 일치하지 않습니다. 다시 확인해주세요.");
+            return;
+        }
+
+        // 인증 성공
+        clearInterval(verificationTimer);
+        if (resetStepDesc) resetStepDesc.innerText = "새로운 비밀번호를 설정해주세요.";
+        if (resetStep2Verification) resetStep2Verification.classList.add('hidden');
+        if (simulatedEmailToast) simulatedEmailToast.classList.add('hidden');
+        if (resetStep3Password) resetStep3Password.classList.remove('hidden');
+    });
+}
+
+if (resetChangePwdBtn) {
+    resetChangePwdBtn.addEventListener('click', () => {
+        const newPwd = resetNewPasswordInput.value.trim();
+
+        if (!newPwd) {
+            alert("새로운 비밀번호를 입력해주세요!");
             return;
         }
 
@@ -1170,16 +1969,21 @@ if (resetBtn) {
         }
 
         const db = loadUsersDB();
-        if (!db[uid]) {
-            alert("해당 아이디(UID)로 가입된 계정이 없습니다.");
-            return;
+        if (db[verificationUid]) {
+            db[verificationUid].password = newPwd;
+            db[verificationUid].email = verificationEmail; // 이메일 주소 저장/업데이트
+            localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+            
+            alert(`'${verificationUid}' 계정의 비밀번호가 성공적으로 변경되었습니다! 새 비밀번호로 시작하기를 눌러주세요.`);
+            closeResetModal();
+        } else {
+            alert("계정 정보 수정 도중 오류가 발생했습니다.");
+            resetVerificationFlow();
         }
-
-        // 비밀번호 업데이트
-        db[uid].password = newPwd;
-        localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
-
-        alert(`'${uid}' 계정의 비밀번호가 성공적으로 초기화되었습니다! 이제 새 비밀번호로 시작하기를 눌러주세요.`);
-        resetModal.classList.add('hidden');
     });
+}
+
+// 로그아웃 시 호출되는 챌린지 초기화 함수 (정의 누락 방지용)
+function resetChallenge() {
+    console.log("Challenge reset called.");
 }

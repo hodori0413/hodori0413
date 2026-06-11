@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- EmailJS SDK CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <!-- Supabase JS SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Maps API 주석 처리 (현재 사용 안함) -->
     <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDElc4xPkWjtOVJcXrFAZSzuiJEwwHv2Is&libraries=places" defer></script> -->
 </head>
@@ -32,13 +36,14 @@
                 </div>
 
                 <div class="login-form">
-                    <input type="text" id="username-input" placeholder="아이디(UID)를 입력해주세요" autocomplete="off">
-                    <input type="password" id="password-input" placeholder="비밀번호를 설정/입력해주세요" autocomplete="off">
+                    <input type="text" id="username-input" placeholder="아이디 또는 이메일을 입력해주세요" autocomplete="off">
+                    <input type="password" id="password-input" placeholder="비밀번호를 입력해주세요" autocomplete="off">
                     <div id="password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-top: -0.2rem; margin-bottom: 0.8rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
                     <button id="login-btn" class="btn-primary">시작하기</button>
                 </div>
                 
-                <div style="text-align: center; margin-top: 1.5rem;">
+                <div style="text-align: center; margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem;">
+                    <span id="open-signup-link" style="color: var(--primary); font-size: 0.85rem; cursor: pointer; text-decoration: underline; font-weight: bold;">아직 계정이 없으신가요? 회원가입</span>
                     <span id="open-reset-modal" style="color: var(--text-muted); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">비밀번호를 잊으셨나요? (설정/초기화)</span>
                 </div>
             </div>
@@ -46,23 +51,66 @@
 
         <!-- 비밀번호 재설정 모달 (로그인 화면에서 접근) -->
         <div id="reset-modal" class="modal hidden">
-            <div class="modal-content" style="width: 85%; max-width: 320px;">
+            <div class="modal-content" style="width: 85%; max-width: 340px;">
                 <div class="modal-header">
                     <h3 style="font-size: 1.2rem;">🔒 비밀번호 초기화</h3>
                     <span class="close-btn" id="reset-close-btn" style="font-size: 1.5rem; cursor: pointer;">&times;</span>
                 </div>
-                <div class="login-form" style="margin-top: 0.5rem;">
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.8rem; line-height: 1.4;">자동가입(봇) 방지를 위해 아래 문제의 정답을 맞춰주세요.</p>
-                    <input type="text" id="reset-uid" placeholder="가입했던 아이디(UID)" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
+                <div class="login-form" style="margin-top: 0.5rem; gap: 0.8rem;">
+                    <p id="reset-step-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; line-height: 1.4;">
+                        가입하신 아이디와 이메일을 입력해주세요.
+                    </p>
                     
-                    <div id="captcha-question" style="background: #e0f2fe; padding: 10px; border-radius: 12px; text-align: center; font-weight: 800; font-size: 1.2rem; color: var(--primary); margin-bottom: 0.5rem; letter-spacing: 2px;">
-                        3 + 5 = ?
+                    <!-- Step 1: UID & Email input -->
+                    <div id="reset-step-1-inputs" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="text" id="reset-uid" placeholder="가입했던 아이디(UID)" autocomplete="off" style="padding: 0.8rem;">
+                        <input type="email" id="reset-email" placeholder="등록된 이메일 주소" autocomplete="off" style="padding: 0.8rem;">
+                        <button id="reset-send-code-btn" class="btn-primary" style="margin-top: 0.2rem; padding: 0.9rem; font-size: 0.95rem;">인증 코드 발송</button>
                     </div>
-                    
-                    <input type="number" id="reset-captcha" placeholder="위 수학 문제의 정답" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
-                    <input type="password" id="reset-new-password" placeholder="새로운 비밀번호" autocomplete="off" style="margin-bottom: 0.5rem; padding: 0.8rem;">
-                    <div id="reset-password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-bottom: 0.8rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
-                    <button id="reset-btn" class="btn-primary" style="margin-top: 0.5rem; padding: 1rem;">비밀번호 변경</button>
+
+                    <!-- Simulated Toast Alert inside modal for premium code delivery -->
+                    <div id="simulated-email-toast" class="coach-advice hidden" style="margin-bottom: 0.5rem; background: #f0f9ff; border-color: #bae6fd; color: #0369a1; padding: 0.8rem; font-size: 0.85rem; text-align: left; position: relative; border-radius: 12px;">
+                        <!-- Simulated email details will be rendered here dynamically -->
+                    </div>
+
+                    <!-- Step 2: Verification code input (hidden initially) -->
+                    <div id="reset-step-2-verification" class="hidden" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div style="position: relative; width: 100%;">
+                            <input type="text" id="reset-verification-code" placeholder="인증 코드 6자리 입력" autocomplete="off" style="padding: 0.8rem; padding-right: 4.5rem;">
+                            <span id="reset-timer" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; color: var(--danger); font-weight: bold;">03:00</span>
+                        </div>
+                        <button id="reset-verify-code-btn" class="btn-primary" style="padding: 0.9rem; font-size: 0.95rem; background: var(--success); box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);">인증 확인</button>
+                    </div>
+
+                    <!-- Step 3: New password input (hidden initially) -->
+                    <div id="reset-step-3-password" class="hidden" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div style="color: var(--success); font-size: 0.85rem; font-weight: bold; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-circle-check"></i> 이메일 인증이 완료되었습니다.
+                        </div>
+                        <input type="password" id="reset-new-password" placeholder="새로운 비밀번호" autocomplete="off" style="padding: 0.8rem;">
+                        <div id="reset-password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-bottom: 0.4rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
+                        <button id="reset-change-pwd-btn" class="btn-primary" style="padding: 0.9rem; font-size: 0.95rem;">비밀번호 변경</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 회원가입 모달 -->
+        <div id="signup-modal" class="modal hidden">
+            <div class="modal-content" style="width: 85%; max-width: 340px;">
+                <div class="modal-header">
+                    <h3 style="font-size: 1.2rem;">✨ 신규 회원가입</h3>
+                    <span class="close-btn" id="signup-close-btn" style="font-size: 1.5rem; cursor: pointer;">&times;</span>
+                </div>
+                <div class="login-form" style="margin-top: 0.5rem; gap: 0.8rem;">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; line-height: 1.4;">
+                        정보를 입력하여 가입을 진행해주세요.
+                    </p>
+                    <input type="text" id="signup-username" placeholder="사용할 아이디/닉네임" autocomplete="off" style="padding: 0.8rem;">
+                    <input type="email" id="signup-email" placeholder="이메일 주소 (로그인 및 복구용)" autocomplete="off" style="padding: 0.8rem;">
+                    <input type="password" id="signup-password" placeholder="비밀번호 (8자 이상, 소문자, 특수기호 포함)" autocomplete="off" style="padding: 0.8rem;">
+                    <div id="signup-password-error" style="color: #ef4444; font-size: 0.8rem; text-align: left; margin-top: -0.2rem; margin-bottom: 0.2rem; padding-left: 0.5rem; display: none;">※ 비밀번호는 영소문자, 특수기호를 포함해 8자 이상이어야 합니다.</div>
+                    <button id="signup-complete-btn" class="btn-primary" style="margin-top: 0.5rem; padding: 1rem;">계정 생성 및 시작하기</button>
                 </div>
             </div>
         </div>
@@ -247,17 +295,34 @@
                         <button id="btn-budget-settings" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fa-solid fa-gear" style="font-size: 1.2rem;"></i></button>
                     </div>
 
-                    <!-- 지난달 vs 이번달 비교 그래프 간략 표시 -->
-                    <div class="result-card" style="margin-bottom: 1.5rem;">
-                        <h3 style="font-size: 1rem; margin-bottom: 1rem; border-bottom: none;"><i class="fa-solid fa-chart-line"></i> 지출 비교</h3>
-                        <div style="display: flex; gap: 10px; align-items: flex-end; height: 60px;">
-                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px;">
-                                <div style="width: 100%; background: #e2e8f0; border-radius: 4px; height: 100%;"></div>
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">지난달</span>
+                    <!-- 지출 비교 분석 카드 -->
+                    <div class="result-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+                        <h3 style="font-size: 1.05rem; margin-bottom: 1rem; border-bottom: none; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                            <span style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-chart-bar" style="color: var(--primary);"></i> 소비 비교 분석</span>
+                            <span id="budget-comparison-badge" style="font-size: 0.72rem; font-weight: 800; background: #dcfce7; color: #15803d; padding: 0.25rem 0.7rem; border-radius: 20px; box-shadow: var(--shadow-sm);">
+                                지난달 대비 420,000원 절약 중! 🌿
+                            </span>
+                        </h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <!-- 지난달 소비 -->
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-muted);">
+                                    <span>지난달 소비</span>
+                                    <span style="font-weight: 600;">420,000원</span>
+                                </div>
+                                <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
+                                    <div style="width: 100%; height: 100%; background: #cbd5e1; border-radius: 5px;"></div>
+                                </div>
                             </div>
-                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px;">
-                                <div id="this-month-bar" style="width: 100%; background: var(--primary); border-radius: 4px; height: 10%;"></div>
-                                <span style="font-size: 0.8rem; color: var(--primary); font-weight: bold;">이번달</span>
+                            <!-- 이번달 소비 -->
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                                    <span style="font-weight: 600; color: var(--primary);">이번달 소비</span>
+                                    <span style="font-weight: bold; color: var(--primary);" id="this-month-amount">0원</span>
+                                </div>
+                                <div style="height: 10px; background: #f0f9ff; border-radius: 5px; overflow: hidden; border: 1px solid rgba(2, 132, 199, 0.1);">
+                                    <div id="this-month-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-light), var(--primary)); border-radius: 5px; transition: width 0.5s ease-out;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -270,6 +335,39 @@
                     <!-- AI 알림 공간 -->
                     <div id="ai-budget-warning" class="coach-advice hidden" style="margin-bottom: 1.5rem; background: #fee2e2; border-color: #fca5a5; color: #991b1b;">
                         <!-- AI 경고 문구 -->
+                    </div>
+                    <!-- 지출 직접 기록 -->
+                    <div class="result-card" style="margin-bottom: 1.5rem; text-align: left;">
+                        <h3 style="font-size: 1rem; margin-bottom: 0.8rem; border-bottom: none; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> 지출 직접 기록
+                        </h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <select id="expense-category" style="flex: 1; padding: 0.8rem; border: 1px solid var(--border); border-radius: 12px; font-size: 0.9rem; background: white;">
+                                    <option value="housing">주거비</option>
+                                    <option value="food" selected>식비/카페</option>
+                                    <option value="transport">교통비</option>
+                                    <option value="shopping">쇼핑</option>
+                                    <option value="others">기타</option>
+                                </select>
+                                <input type="text" id="expense-title" placeholder="어디에 쓰셨나요? (예: 커피)" style="flex: 2; padding: 0.8rem; border: 1px solid var(--border); border-radius: 12px; font-size: 0.9rem;">
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="expense-amount" placeholder="금액 입력 (원)" style="flex: 1; padding: 0.8rem; border: 1px solid var(--border); border-radius: 12px; font-size: 0.9rem;">
+                                <button id="btn-add-expense" class="btn-primary" style="width: auto; padding: 0.8rem 1.5rem; font-size: 0.9rem; border-radius: 12px; white-space: nowrap;">추가</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 최근 지출 내역 리스트 -->
+                    <div class="result-card" style="margin-bottom: 1.5rem; text-align: left;">
+                        <h3 style="font-size: 1rem; margin-bottom: 0.8rem; border-bottom: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-list-ul" style="color: var(--primary);"></i> 최근 지출 내역</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;" id="expense-count">0건</span>
+                        </h3>
+                        <div id="expense-history-list" style="display: flex; flex-direction: column; gap: 0.8rem; max-height: 200px; overflow-y: auto;">
+                            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;" id="empty-history-text">등록된 지출 내역이 없습니다.</p>
+                        </div>
                     </div>
 
                     <!-- 영수증 업로드 -->
@@ -335,6 +433,20 @@
                         <p id="api-key-status" style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--success); font-weight: bold; display: none;">✓ API 키가 저장되었습니다.</p>
                     </div>
 
+                    <!-- Supabase API 설정 카드 -->
+                    <div class="result-card" style="margin-bottom: 1rem; text-align: left;">
+                        <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-database" style="color: var(--primary);"></i> Supabase 연동 설정</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">클라우드 로그인 및 데이터 동기화를 위해 Supabase 프로젝트의 URL과 Anon Key를 입력해 주세요.</p>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <input type="text" id="supabase-url-input" placeholder="Supabase Project URL (https://your-project.supabase.co)" style="padding: 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="supabase-anon-key-input" placeholder="Supabase Anon Key (eyJhbG...)" style="flex: 1; padding: 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem;">
+                                <button id="save-supabase-btn" class="btn-primary" style="padding: 0.8rem 1.2rem; width: auto; font-size: 0.9rem; white-space: nowrap;">저장</button>
+                            </div>
+                        </div>
+                        <p id="supabase-status" style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--success); font-weight: bold; display: none;">✓ Supabase 연동 정보가 저장되었습니다.</p>
+                    </div>
+
                     <div class="result-card" style="margin-bottom: 1rem; text-align: center;">
                         <i class="fa-solid fa-circle-question" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
                         <h3 style="margin-bottom: 0.5rem;">도움말 및 가이드</h3>
@@ -391,7 +503,7 @@
         </main>
     </div>
 
-    <script src="app.js?v=20260414"></script>
+    <script src="app.js?v=20260611_v2"></script>
 </body>
 
 </html>

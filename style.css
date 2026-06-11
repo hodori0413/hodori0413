@@ -1056,3 +1056,30 @@ body {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
 }
+
+/* 이메일 본인 인증 및 타이머 스타일 */
+#simulated-email-toast {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.verify-code-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-align: center;
+    padding: 0.6rem;
+    border-radius: 12px;
+    letter-spacing: 3px;
+    margin: 0.6rem 0;
+    border: 2px dashed #bae6fd;
+}
+
+.timer-pulse {
+    animation: timerPulse 1s infinite alternate;
+}
+
+@keyframes timerPulse {
+    from { opacity: 1; }
+    to { opacity: 0.4; }
+}
