@@ -1246,9 +1246,10 @@ window.showNearbyPropertiesList = function() {
             finishPropertySearch(typingId, true, position);
         },
         (error) => {
+            console.warn("Geolocation Error:", error);
             finishPropertySearch(typingId, false);
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
     );
 };
 
@@ -1256,9 +1257,9 @@ function finishPropertySearch(typingId, success, position = null) {
     const tDiv = document.getElementById(typingId);
     if(tDiv) tDiv.remove();
 
-    // 로컬 환경(file://) 등에서 권한이나 HTTPS 문제로 GPS가 실패할 경우 조용히 강남역 좌표로 모킹
     if (!success || !position) {
-        position = { coords: { latitude: 37.4979, longitude: 127.0276 } };
+        addMessageToChat("📍 위치 정보를 가져오는데 실패했습니다.<br>브라우저나 기기의 위치 권한이 켜져 있는지 확인하신 후 다시 시도해 주세요.", 'ai');
+        return;
     }
 
     const lat = position.coords.latitude;
