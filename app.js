@@ -60,11 +60,6 @@ const newPasswordInput = document.getElementById('new-password');
 const confirmNewPasswordInput = document.getElementById('confirm-new-password');
 const changePasswordBtn = document.getElementById('change-password-btn');
 
-// Supabase Settings DOM Elements
-const supabaseUrlInput = document.getElementById('supabase-url-input');
-const supabaseAnonKeyInput = document.getElementById('supabase-anon-key-input');
-const saveSupabaseBtn = document.getElementById('save-supabase-btn');
-const supabaseStatus = document.getElementById('supabase-status');
 
 // Signup DOM Elements
 const openSignupLink = document.getElementById('open-signup-link');
@@ -963,78 +958,9 @@ logoutBtn.addEventListener('click', () => {
 
 // --- AI Coach Chat Logic ---
 
-// API Key Management (Google Gemini)
-const GEMINI_API_KEY_KEY = 'GEMINI_API_KEY_LOCAL';
 
-function getGeminiApiKey() {
-    // Vercel 백엔드 마이그레이션으로 인해 더 이상 프론트엔드에서 키를 관리하지 않습니다.
-    return "";
-}
 
-// UI Elements for API Key
-const geminiApiKeyInput = document.getElementById('gemini-api-key-input');
-const saveApiKeyBtn = document.getElementById('save-api-key-btn');
-const apiKeyStatus = document.getElementById('api-key-status');
 
-if (geminiApiKeyInput) {
-    // Load stored key on init
-    geminiApiKeyInput.value = getGeminiApiKey();
-}
-
-if (saveApiKeyBtn && geminiApiKeyInput) {
-    saveApiKeyBtn.addEventListener('click', () => {
-        const key = geminiApiKeyInput.value.trim();
-        if (key) {
-            localStorage.setItem(GEMINI_API_KEY_KEY, key);
-            if (apiKeyStatus) {
-                apiKeyStatus.style.display = 'block';
-                setTimeout(() => {
-                    apiKeyStatus.style.display = 'none';
-                }, 3000);
-            }
-            alert("Gemini API 키가 브라우저에 안전하게 저장되었습니다.");
-        } else {
-            localStorage.removeItem(GEMINI_API_KEY_KEY);
-            alert("Gemini API 키가 삭제되었습니다. 실시간 코칭을 이용하려면 키가 필요합니다.");
-        }
-    });
-}
-
-// Supabase API Key & URL Management
-if (supabaseUrlInput && supabaseAnonKeyInput) {
-    supabaseUrlInput.value = localStorage.getItem(SUPABASE_URL_KEY) || "https://itcnwqcesnqczycujuho.supabase.co";
-    supabaseAnonKeyInput.value = localStorage.getItem(SUPABASE_ANON_KEY_KEY) || "sb_publishable_GAixpDEKhirlOPHyjx2j9A_mHPP7q12";
-}
-
-if (saveSupabaseBtn && supabaseUrlInput && supabaseAnonKeyInput) {
-    saveSupabaseBtn.addEventListener('click', () => {
-        const url = supabaseUrlInput.value.trim();
-        const key = supabaseAnonKeyInput.value.trim();
-
-        if (url && key) {
-            localStorage.setItem(SUPABASE_URL_KEY, url);
-            localStorage.setItem(SUPABASE_ANON_KEY_KEY, key);
-            
-            const initSuccess = initSupabase();
-            if (initSuccess) {
-                if (supabaseStatus) {
-                    supabaseStatus.style.display = 'block';
-                    setTimeout(() => {
-                        supabaseStatus.style.display = 'none';
-                    }, 3000);
-                }
-                alert("Supabase 연동 정보가 브라우저에 안전하게 저장되고 초기화되었습니다. 이제 클라우드 인증을 사용합니다! 🔒");
-            } else {
-                alert("Supabase SDK 초기화 중 실패했습니다. URL 또는 Anon Key 값을 다시 확인해 주세요.");
-            }
-        } else {
-            localStorage.removeItem(SUPABASE_URL_KEY);
-            localStorage.removeItem(SUPABASE_ANON_KEY_KEY);
-            supabaseClient = null;
-            alert("Supabase 연동이 해제되었습니다. 이제 로컬 저장소 모드(LocalStorage)로 작동합니다.");
-        }
-    });
-}
 
 
 
