@@ -1264,7 +1264,7 @@ function finishPropertySearch(typingId, success, position = null) {
 
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
-    const naverUrl = `https://new.land.naver.com/rooms?lat=${lat}&lon=${lng}&z=16`;
+    const naverUrl = `https://map.naver.com/p/search/원룸?c=${lng},${lat},15,0,0,0,dh`;
     
     const aiResponse = "📍 **내 위치 확인 완료!** 현재 계신 곳 반경 1km 내외의 추천 매물을 찾았습니다!<br>아래 카드를 클릭하시면 **네이버 부동산(Npay)** 앱/웹이 열리며 사용자님 주변 지도가 바로 표시됩니다.<br>" +
         `<div style="display:flex; flex-direction:column; gap:0.8rem; margin-top:1rem;">
