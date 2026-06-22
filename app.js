@@ -222,6 +222,7 @@ if (passwordInput) {
 
 function loginUser(name, dbRecord) {
     currentUser = name;
+    sessionStorage.setItem('loggedInUser', name);
 
     // Set UI
     userNameDisplay.innerText = name;
@@ -562,6 +563,7 @@ passwordInput.addEventListener('keypress', function (e) {
 
 // --- Navigation Logic ---
 function switchTab(tabId) {
+    sessionStorage.setItem('currentTab', tabId);
     // 1. Update Navigation styling
     navItems.forEach(item => {
         if (item.dataset.tab === tabId) {
@@ -905,6 +907,10 @@ renderBudgetOverview();
 logoutBtn.addEventListener('click', () => {
     // 로그아웃 시 현재 상태 한 번 더 저장
     saveUserProgress();
+
+    sessionStorage.removeItem('loggedInUser');
+    sessionStorage.removeItem('currentTab');
+    if (supabaseClient) supabaseClient.auth.signOut();
 
     // 대화 기록 초기화
     geminiChatHistory = [];
@@ -1264,7 +1270,8 @@ function finishPropertySearch(typingId, success, position = null) {
 
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
-    const naverUrl = `https://map.naver.com/p/search/원룸?c=${lng},${lat},15,0,0,0,dh`;
+    // 사용자 요청에 따라 GPS 좌표 대신 '나주시 대호동'의 법정동 코드(4617011600)를 사용하여 고정 검색결과 제공
+    const naverUrl = `https://new.land.naver.com/complexes?cortarNo=4617011600`;
     
     const aiResponse = "📍 **내 위치 확인 완료!** 현재 계신 곳 반경 1km 내외의 추천 매물을 찾았습니다!<br>아래 카드를 클릭하시면 **네이버 부동산(Npay)** 앱/웹이 열리며 사용자님 주변 지도가 바로 표시됩니다.<br>" +
         `<div style="display:flex; flex-direction:column; gap:0.8rem; margin-top:1rem;">
@@ -1863,3 +1870,56 @@ if (resetChangePwdBtn) {
 function resetChallenge() {
     console.log("Challenge reset called.");
 }
+
+// --- Auto Login & Tab Persistence ---
+window.addEventListener('DOMContentLoaded', async () => {
+    const savedTab = sessionStorage.getItem('currentTab') || 'dashboard';
+    const savedUser = sessionStorage.getItem('loggedInUser');
+
+    if (savedUser) {
+        let dbRecord = null;
+        if (supabaseClient) {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user) {
+                    const { data: profile } = await supabaseClient
+                        .from('user_profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+                    if (profile) {
+                        dbRecord = {
+                            totalPoints: profile.total_points || 0,
+                            progressPoints: profile.progress_points || 0,
+                            currentLevel: profile.current_level || 1,
+                            budgetData: profile.budget_data || null,
+                            email: session.user.email
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn("Auto login supabase error:", e);
+            }
+        }
+        
+        if (!dbRecord) {
+            const db = loadUsersDB();
+            dbRecord = db[savedUser];
+            if (!dbRecord) {
+                for (let key in db) {
+                    if (db[key].email === savedUser) {
+                        dbRecord = db[key];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (dbRecord) {
+            loginUser(savedUser, dbRecord);
+            switchTab(savedTab);
+        } else {
+            sessionStorage.removeItem('loggedInUser');
+        }
+    }
+});
